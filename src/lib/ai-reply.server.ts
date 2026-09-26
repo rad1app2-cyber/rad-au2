@@ -19,7 +19,7 @@ export type ReplyResult = {
   blocked: boolean;
 };
 
-const MODELS = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-flash-latest"];
+const MODELS = ["gemini-3.8-flash", "gemini-flash-latest", "gemini-3.1-flash-lite"];
 
 export async function buildReply(opts: {
   agent: AgentRow;

@@ -32,7 +32,7 @@ function AuthPage() {
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
-      if (data.session) navigate({ to: "/dashboard" });
+      if (data.session) navigate({ to: "/" });
     });
   }, [navigate]);
 
@@ -58,7 +58,7 @@ function AuthPage() {
       return;
     }
     toast.success("أهلاً بك مجددًا");
-    navigate({ to: "/dashboard" });
+    navigate({ to: "/" });
   }
 
   async function signUp(e: React.FormEvent) {
@@ -102,7 +102,7 @@ function AuthPage() {
       return;
     }
     toast.success("تم إنشاء حسابك");
-    navigate({ to: "/dashboard" });
+    navigate({ to: "/" });
   }
 
   return (
