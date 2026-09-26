@@ -159,7 +159,7 @@ export const getAnalytics = createServerFn({ method: "GET" })
 
     const [agentsRes, contactsRes, dealsRes, messagesRes] = await Promise.all([
       context.supabase.from("agents").select("id, ai_name, status, active"),
-      context.supabase.from("contacts").select("id, created_at"),
+      context.supabase.from("contacts").select("id, agent_id, created_at"),
       context.supabase.from("deals").select("id, stage, value, created_at"),
       context.supabase
         .from("messages")
@@ -211,8 +211,12 @@ export const getAnalytics = createServerFn({ method: "GET" })
       days,
       stages,
       byAgent: agents.map((a) => ({
+        id: a.id,
         name: a.ai_name,
         messages: messages.filter((m) => m.agent_id === a.id).length,
+        conversations: new Set(messages.filter((m) => m.agent_id === a.id).map((m) => m.remote_jid)).size,
+        contacts: contacts.filter((c) => c.agent_id === a.id).length,
+        deals: deals.filter((d) => d.agent_id === a.id).length,
       })),
     };
   });
