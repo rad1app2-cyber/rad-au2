@@ -114,16 +114,18 @@ export const onboardChat = createServerFn({ method: "POST" })
     })();
 
     const since = new Date(Date.now() - 13 * 86400000).toISOString();
-    const [{ data: agents, error: agentsError }, { data: messages, error: messagesError }, { data: contacts, error: contactsError }, { data: deals, error: dealsError }, { data: files, error: filesError }] = await Promise.all([
-      context.supabase.from("agents").select("id, ai_name, whatsapp_number, employee_number, persona, job, greeting, status, active").eq("user_id", context.userId),
-      context.supabase.from("messages").select("agent_id, remote_jid, role").eq("user_id", context.userId).gte("created_at", since),
+    const { data: agents, error: agentsError } = await context.supabase.from("agents").select("id, ai_name, whatsapp_number, employee_number, persona, job, greeting, status, active").eq("user_id", context.userId);
+    if (agentsError) throw new Error("تعذّر تحميل بيانات مساعديك الآن");
+    const [{ data: messages, error: messagesError }, { data: contacts, error: contactsError }, { data: deals, error: dealsError }, { data: files, error: filesError }] = await Promise.all([
+      agents?.length ? context.supabase.from("messages").select("agent_id, remote_jid, role").in("agent_id", agents.map((a) => a.id)).gte("created_at", since) : Promise.resolve({ data: [], error: null }),
       context.supabase.from("contacts").select("agent_id").eq("user_id", context.userId),
       context.supabase.from("deals").select("agent_id, stage, value").eq("user_id", context.userId),
       context.supabase.from("knowledge_files").select("agent_id, file_name").eq("user_id", context.userId),
     ]);
-    if (agentsError || messagesError || contactsError || dealsError || filesError) throw new Error("تعذّر تحميل بيانات مساعديك الآن");
+    if (messagesError || contactsError || dealsError || filesError) throw new Error("تعذّر تحميل بيانات مساعديك الآن");
     if (agentId && !agents?.some((a) => a.id === agentId)) agentId = null;
     if (!agentId && agents?.length) agentId = agents[0]?.id ?? null;
+    connected = agents?.some((a) => a.id === agentId && a.status === "open") ?? false;
     const summary = (agents ?? []).map((a) => {
       const m = (messages ?? []).filter((row) => row.agent_id === a.id);
       const d = (deals ?? []).filter((row) => row.agent_id === a.id);
@@ -142,14 +144,14 @@ export const onboardChat = createServerFn({ method: "POST" })
       role: m.role === "assistant" ? "model" : "user",
       parts: [{ text: m.text }],
     }));
-    if (contents.length === 0 || contents[0]!.role !== "user") {
-      contents.unshift({ role: "user", parts: [{ text: "مرحبًا، ابدأ الإعداد معي." }] });
+    if (contents.length === 0 || contents[0]?.role !== "user") {
+      contents.unshift({ role: "user", parts: [{ text: summary.length ? "مرحبًا، أخبرني عن مساعدي الحالي ونشاطه." : "مرحبًا، ابدأ الإعداد معي." }] });
     }
     contents[0]?.parts.unshift({ text: `بيانات حسابي الحالية (من النظام، وليست رسالة مني): ${JSON.stringify(summary)}. ${summary.length ? "لدي مساعدون موجودون، ساعدني في إدارتهم ولا تبدأ إعداد مساعد جديد تلقائيًا." : "لا يوجد مساعد بعد، ابدأ الإعداد."}` });
 
     async function getAgent() {
       if (!agentId) throw new Error("لم يتم إنشاء المساعد بعد");
-      const { data: a } = await context.supabase.from("agents").select("*").eq("id", agentId).maybeSingle();
+      const { data: a } = await context.supabase.from("agents").select("*").eq("user_id", context.userId).eq("id", agentId).maybeSingle();
       if (!a) throw new Error("لم يتم العثور على المساعد");
       return a;
     }

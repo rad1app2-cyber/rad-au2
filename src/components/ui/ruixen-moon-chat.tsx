@@ -1,11 +1,13 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import ReactMarkdown from "react-markdown";
 import { toast } from "sonner";
-import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { Conversation, ConversationContent, ConversationScrollButton } from "@/components/ai-elements/conversation";
+import { Message, MessageContent, MessageResponse } from "@/components/ai-elements/message";
+import { PromptInput, PromptInputTextarea, PromptInputFooter, PromptInputSubmit } from "@/components/ai-elements/prompt-input";
+import { Shimmer } from "@/components/ai-elements/shimmer";
 import { ArrowUpIcon, Paperclip, CheckCircle2, RefreshCw, LayoutDashboard, LogOut, Copy, FileText } from "lucide-react";
 import logo from "@/assets/radd-logo.png";
 import { onboardChat } from "@/lib/onboard.functions";
@@ -13,21 +15,6 @@ import { addKnowledge } from "@/lib/radd.functions";
 import { supabase } from "@/integrations/supabase/client";
 
 type Msg = { role: "user" | "assistant"; text: string; code?: string | undefined; file?: string | undefined };
-
-function useAutoResizeTextarea(minHeight: number, maxHeight: number) {
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const adjustHeight = useCallback(
-    (reset?: boolean) => {
-      const t = textareaRef.current;
-      if (!t) return;
-      t.style.height = `${minHeight}px`;
-      if (reset) return;
-      t.style.height = `${Math.max(minHeight, Math.min(t.scrollHeight, maxHeight))}px`;
-    },
-    [minHeight, maxHeight],
-  );
-  return { textareaRef, adjustHeight };
-}
 
 function toBase64(file: File) {
   return new Promise<string>((resolve, reject) => {
@@ -49,13 +36,8 @@ export default function RuixenMoonChat() {
   const [connected, setConnected] = useState(false);
   const pending = useRef<File[]>([]);
   const fileRef = useRef<HTMLInputElement>(null);
-  const endRef = useRef<HTMLDivElement>(null);
   const started = useRef(false);
-  const { textareaRef, adjustHeight } = useAutoResizeTextarea(48, 150);
-
-  useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, busy]);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   async function uploadFile(file: File, id: string) {
     const base64 = await toBase64(file);
@@ -85,7 +67,7 @@ export default function RuixenMoonChat() {
             }
           }
         }
-        if (res.connected) setConnected(true);
+         setConnected(res.connected);
         setMessages([...next, { role: "assistant", text: res.reply, code: res.pairingCode ?? undefined }]);
       } catch (e) {
         toast.error(e instanceof Error ? e.message : "حدث خطأ");
@@ -95,8 +77,7 @@ export default function RuixenMoonChat() {
         textareaRef.current?.focus();
       }
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [agentId, chat],
+    [agentId, chat, upload],
   );
 
   useEffect(() => {
@@ -105,12 +86,12 @@ export default function RuixenMoonChat() {
     void send("", []);
   }, [send]);
 
-  function submit() {
-    const t = message.trim();
+  function submit(text: string) {
+    const t = text.trim();
     if (!t || busy) return;
     setMessage("");
-    adjustHeight(true);
     void send(t, messages);
+    requestAnimationFrame(() => textareaRef.current?.focus());
   }
 
   async function onFile(file: File) {
@@ -137,14 +118,11 @@ export default function RuixenMoonChat() {
   const lastCodeIdx = messages.map((m) => !!m.code).lastIndexOf(true);
 
   return (
-    <div className="relative flex h-screen w-full flex-col items-center overflow-hidden bg-background">
-      {/* Logo in the background */}
-      <img
-        src={logo}
-        alt=""
-        aria-hidden
-        className="pointer-events-none absolute left-1/2 top-1/2 w-[70vmin] -translate-x-1/2 -translate-y-1/2 select-none opacity-[0.07] blur-[1px]"
-      />
+    <div className="relative flex h-dvh w-full flex-col items-center overflow-hidden bg-background" dir="rtl">
+      <div className="pointer-events-none absolute inset-0 mx-auto flex w-full max-w-3xl items-center justify-center overflow-hidden" aria-hidden="true">
+        <img src={logo} alt="" className="chat-logo-glow h-auto w-[min(155vw,68rem)] max-w-none select-none opacity-25" />
+        <img src={logo} alt="" className="absolute h-auto w-[min(155vw,68rem)] max-w-none select-none opacity-[0.08] blur-3xl" />
+      </div>
 
       <header className="relative z-10 flex w-full max-w-3xl items-center justify-between px-4 py-4">
         <div className="flex items-center gap-2">
@@ -171,44 +149,36 @@ export default function RuixenMoonChat() {
         </div>
       </header>
 
-      <div className="relative z-10 w-full max-w-3xl flex-1 space-y-4 overflow-y-auto px-4 pb-4">
+       <Conversation className="relative z-10 w-full max-w-3xl min-h-0">
+        <ConversationContent className="gap-5 px-4 py-6">
         {messages.length === 0 && !busy && (
           <div className="pt-24 text-center">
             <h1 className="brand-text text-4xl font-extrabold">مساعد ردّ</h1>
-            <p className="mt-2 text-muted-foreground">لنجهّز مساعد واتساب الخاص بك في دقائق.</p>
+             <p className="mt-2 text-muted-foreground">أنا هنا لمساعدتك.</p>
           </div>
         )}
         {messages.map((m, i) => (
-          <div key={i} className={cn("flex", m.role === "user" ? "justify-start" : "justify-end")}>
-            <div
-              className={cn(
-                "max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-7",
-                m.role === "user"
-                  ? "bg-secondary text-secondary-foreground"
-                  : "border border-border bg-card/80 text-card-foreground backdrop-blur",
-              )}
-            >
+          <Message key={i} from={m.role} className={cn("max-w-[90%]", m.role === "user" ? "self-start" : "self-end")}>
+            <MessageContent className={cn("text-sm leading-7", m.role === "user" ? "rounded-md bg-secondary px-4 py-3 text-secondary-foreground" : "px-1 py-2 text-foreground")}>
               {m.file && (
                 <div className="mb-1 flex items-center gap-1 text-xs text-muted-foreground">
                   <FileText className="h-3.5 w-3.5" /> {m.file}
                 </div>
               )}
-              <div className="space-y-2 [&_ol]:list-decimal [&_ol]:pr-5 [&_ul]:list-disc [&_ul]:pr-5 [&_strong]:font-bold">
-                <ReactMarkdown>{m.text}</ReactMarkdown>
-              </div>
+               <MessageResponse className="[&_ol]:pr-5 [&_ul]:pr-5">{m.text}</MessageResponse>
               {m.code && (
                 <div className="mt-3 space-y-3">
-                  <button
+                   <Button
                     type="button"
                     onClick={() => {
-                      void navigator.clipboard.writeText(m.code!);
+                       if (m.code) void navigator.clipboard.writeText(m.code);
                       toast.success("تم نسخ الكود");
                     }}
-                    className="brand-gradient flex w-full items-center justify-center gap-2 rounded-xl py-3 font-mono text-2xl font-extrabold tracking-[0.3em] text-primary-foreground"
+                     className="brand-gradient flex h-auto w-full items-center justify-center gap-2 rounded-md py-3 font-mono text-2xl font-extrabold text-primary-foreground"
                     dir="ltr"
                   >
                     {m.code} <Copy className="h-4 w-4" />
-                  </button>
+                   </Button>
                   {i === lastCodeIdx && !connected && (
                     <div className="flex flex-wrap gap-2">
                       <Button disabled={busy} className="gap-1" onClick={() => send("تم الربط", messages)}>
@@ -226,46 +196,27 @@ export default function RuixenMoonChat() {
                   )}
                 </div>
               )}
-            </div>
-          </div>
+            </MessageContent>
+          </Message>
         ))}
         {busy && (
-          <div className="flex justify-end">
-            <div className="flex gap-1 rounded-2xl border border-border bg-card/80 px-4 py-4">
-              {[0, 1, 2].map((d) => (
-                <span
-                  key={d}
-                  className="h-2 w-2 animate-bounce rounded-full bg-primary"
-                  style={{ animationDelay: `${d * 150}ms` }}
-                />
-              ))}
-            </div>
-          </div>
+           <Message from="assistant" className="self-end"><MessageContent><Shimmer className="text-sm">ردّ يكتب…</Shimmer></MessageContent></Message>
         )}
-        <div ref={endRef} />
-      </div>
+        </ConversationContent>
+        <ConversationScrollButton aria-label="انتقل إلى أحدث رسالة" />
+       </Conversation>
 
       <div className="relative z-10 w-full max-w-3xl px-4 pb-6">
-        <div className="rounded-xl border border-border bg-card/70 backdrop-blur-md">
-          <Textarea
+         <PromptInput className="rounded-md border border-border bg-card/80 backdrop-blur-md" onSubmit={({ text }) => submit(text)}>
+           <PromptInputTextarea
             ref={textareaRef}
             autoFocus
             value={message}
-            onChange={(e) => {
-              setMessage(e.target.value);
-              adjustHeight();
-            }}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                submit();
-              }
-            }}
+             onChange={(e) => setMessage(e.target.value)}
             placeholder="اكتب رسالتك..."
-            className="min-h-[48px] w-full resize-none border-none bg-transparent px-4 py-3 text-sm focus-visible:ring-0 focus-visible:ring-offset-0"
-            style={{ overflow: "hidden" }}
+             className="min-h-14 max-h-36 bg-transparent text-sm"
           />
-          <div className="flex items-center justify-between p-3">
+           <PromptInputFooter className="px-2 pb-2">
             <input
               ref={fileRef}
               type="file"
@@ -277,26 +228,26 @@ export default function RuixenMoonChat() {
                 if (f) void onFile(f);
               }}
             />
-            <Button
+             <Button
               variant="ghost"
               size="icon"
+               type="button"
               aria-label="إرفاق ملف"
               disabled={busy}
               onClick={() => fileRef.current?.click()}
             >
               <Paperclip className="h-4 w-4" />
             </Button>
-            <Button
-              onClick={submit}
+             <PromptInputSubmit
               disabled={!message.trim() || busy}
-              size="icon"
+               status={busy ? "submitted" : "ready"}
               className="brand-gradient text-primary-foreground"
               aria-label="إرسال"
             >
               <ArrowUpIcon className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
+             </PromptInputSubmit>
+           </PromptInputFooter>
+         </PromptInput>
       </div>
     </div>
   );

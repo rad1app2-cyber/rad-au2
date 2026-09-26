@@ -1,9 +1,9 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import type { MotionProps } from "motion/react";
+import type { MotionProps, MotionStyle } from "motion/react";
 import { motion } from "motion/react";
-import type { CSSProperties, ElementType, JSX } from "react";
+import type { ElementType, JSX } from "react";
 import { memo, useMemo } from "react";
 
 type MotionHTMLProps = MotionProps & Record<string, unknown>;
@@ -17,7 +17,7 @@ const motionComponentCache = new Map<
 const getMotionComponent = (element: keyof JSX.IntrinsicElements) => {
   let component = motionComponentCache.get(element);
   if (!component) {
-    component = motion.create(element);
+    component = motion.create(element) as React.ComponentType<MotionHTMLProps>;
     motionComponentCache.set(element, component);
   }
   return component;
@@ -61,7 +61,7 @@ const ShimmerComponent = ({
           "--spread": `${dynamicSpread}px`,
           backgroundImage:
             "var(--bg), linear-gradient(var(--color-muted-foreground), var(--color-muted-foreground))",
-        } as CSSProperties
+        } as MotionStyle
       }
       transition={{
         duration,

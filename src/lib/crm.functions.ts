@@ -160,13 +160,14 @@ export const getAnalytics = createServerFn({ method: "GET" })
     const [agentsRes, contactsRes, dealsRes, messagesRes] = await Promise.all([
       context.supabase.from("agents").select("id, ai_name, status, active"),
       context.supabase.from("contacts").select("id, agent_id, created_at"),
-      context.supabase.from("deals").select("id, stage, value, created_at"),
+      context.supabase.from("deals").select("id, agent_id, stage, value, created_at"),
       context.supabase
         .from("messages")
         .select("id, role, created_at, remote_jid, agent_id")
         .gte("created_at", since.toISOString()),
     ]);
 
+    if (agentsRes.error || contactsRes.error || dealsRes.error || messagesRes.error) throw new Error("تعذّر تحميل الإحصاءات");
     const agents = agentsRes.data ?? [];
     const contacts = contactsRes.data ?? [];
     const deals = dealsRes.data ?? [];
@@ -206,7 +207,7 @@ export const getAnalytics = createServerFn({ method: "GET" })
         wonValue: won.reduce((s, d) => s + Number(d.value ?? 0), 0),
         winRate: closed.length ? Math.round((won.length / closed.length) * 100) : 0,
         messages14d: messages.length,
-        conversations14d: new Set(messages.map((m) => m.remote_jid)).size,
+        conversations14d: new Set(messages.map((m) => `${m.agent_id}:${m.remote_jid}`)).size,
       },
       days,
       stages,
