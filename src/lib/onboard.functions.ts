@@ -114,14 +114,15 @@ export const onboardChat = createServerFn({ method: "POST" })
     })();
 
     const since = new Date(Date.now() - 13 * 86400000).toISOString();
-    const [{ data: agents, error: agentsError }, { data: messages, error: messagesError }, { data: contacts, error: contactsError }, { data: deals, error: dealsError }, { data: files, error: filesError }] = await Promise.all([
-      context.supabase.from("agents").select("id, ai_name, whatsapp_number, employee_number, persona, job, greeting, status, active").eq("user_id", context.userId),
-      context.supabase.from("messages").select("agent_id, remote_jid, role").in("agent_id", (await context.supabase.from("agents").select("id").eq("user_id", context.userId)).data?.map((a) => a.id) ?? []).gte("created_at", since),
+    const { data: agents, error: agentsError } = await context.supabase.from("agents").select("id, ai_name, whatsapp_number, employee_number, persona, job, greeting, status, active").eq("user_id", context.userId);
+    if (agentsError) throw new Error("تعذّر تحميل بيانات مساعديك الآن");
+    const [{ data: messages, error: messagesError }, { data: contacts, error: contactsError }, { data: deals, error: dealsError }, { data: files, error: filesError }] = await Promise.all([
+      agents?.length ? context.supabase.from("messages").select("agent_id, remote_jid, role").in("agent_id", agents.map((a) => a.id)).gte("created_at", since) : Promise.resolve({ data: [], error: null }),
       context.supabase.from("contacts").select("agent_id").eq("user_id", context.userId),
       context.supabase.from("deals").select("agent_id, stage, value").eq("user_id", context.userId),
       context.supabase.from("knowledge_files").select("agent_id, file_name").eq("user_id", context.userId),
     ]);
-    if (agentsError || messagesError || contactsError || dealsError || filesError) throw new Error("تعذّر تحميل بيانات مساعديك الآن");
+    if (messagesError || contactsError || dealsError || filesError) throw new Error("تعذّر تحميل بيانات مساعديك الآن");
     if (agentId && !agents?.some((a) => a.id === agentId)) agentId = null;
     if (!agentId && agents?.length) agentId = agents[0]?.id ?? null;
     const summary = (agents ?? []).map((a) => {
