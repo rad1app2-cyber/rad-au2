@@ -12,7 +12,7 @@ import { onboardChat } from "@/lib/onboard.functions";
 import { addKnowledge } from "@/lib/radd.functions";
 import { supabase } from "@/integrations/supabase/client";
 
-type Msg = { role: "user" | "assistant"; text: string; code?: string; file?: string };
+type Msg = { role: "user" | "assistant"; text: string; code?: string | undefined; file?: string | undefined };
 
 function useAutoResizeTextarea(minHeight: number, maxHeight: number) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -193,7 +193,7 @@ export default function RuixenMoonChat() {
                   <FileText className="h-3.5 w-3.5" /> {m.file}
                 </div>
               )}
-              <div className="prose prose-sm prose-invert max-w-none">
+              <div className="space-y-2 [&_ol]:list-decimal [&_ol]:pr-5 [&_ul]:list-disc [&_ul]:pr-5 [&_strong]:font-bold">
                 <ReactMarkdown>{m.text}</ReactMarkdown>
               </div>
               {m.code && (
