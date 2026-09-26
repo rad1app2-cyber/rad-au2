@@ -120,8 +120,8 @@ export default function RuixenMoonChat() {
   return (
     <div className="relative flex h-dvh w-full flex-col items-center overflow-hidden bg-background" dir="rtl">
       <div className="pointer-events-none absolute inset-0 mx-auto flex w-full max-w-3xl items-center justify-center overflow-hidden" aria-hidden="true">
-        <img src={logo} alt="" className="chat-logo-glow h-auto w-[min(110vw,52rem)] max-w-none select-none opacity-25" />
-        <img src={logo} alt="" className="absolute h-auto w-[min(110vw,52rem)] max-w-none select-none opacity-[0.08] blur-3xl" />
+        <img src={logo} alt="" className="chat-logo-glow h-auto w-[min(155vw,68rem)] max-w-none select-none opacity-25" />
+        <img src={logo} alt="" className="absolute h-auto w-[min(155vw,68rem)] max-w-none select-none opacity-[0.08] blur-3xl" />
       </div>
 
       <header className="relative z-10 flex w-full max-w-3xl items-center justify-between px-4 py-4">

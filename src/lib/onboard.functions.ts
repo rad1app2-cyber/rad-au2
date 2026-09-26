@@ -125,6 +125,7 @@ export const onboardChat = createServerFn({ method: "POST" })
     if (messagesError || contactsError || dealsError || filesError) throw new Error("تعذّر تحميل بيانات مساعديك الآن");
     if (agentId && !agents?.some((a) => a.id === agentId)) agentId = null;
     if (!agentId && agents?.length) agentId = agents[0]?.id ?? null;
+    connected = agents?.some((a) => a.id === agentId && a.status === "open") ?? false;
     const summary = (agents ?? []).map((a) => {
       const m = (messages ?? []).filter((row) => row.agent_id === a.id);
       const d = (deals ?? []).filter((row) => row.agent_id === a.id);
