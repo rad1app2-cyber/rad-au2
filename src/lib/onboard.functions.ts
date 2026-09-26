@@ -116,7 +116,7 @@ export const onboardChat = createServerFn({ method: "POST" })
     const since = new Date(Date.now() - 13 * 86400000).toISOString();
     const [{ data: agents, error: agentsError }, { data: messages, error: messagesError }, { data: contacts, error: contactsError }, { data: deals, error: dealsError }, { data: files, error: filesError }] = await Promise.all([
       context.supabase.from("agents").select("id, ai_name, whatsapp_number, employee_number, persona, job, greeting, status, active").eq("user_id", context.userId),
-      context.supabase.from("messages").select("agent_id, remote_jid, role").eq("user_id", context.userId).gte("created_at", since),
+      context.supabase.from("messages").select("agent_id, remote_jid, role").in("agent_id", (await context.supabase.from("agents").select("id").eq("user_id", context.userId)).data?.map((a) => a.id) ?? []).gte("created_at", since),
       context.supabase.from("contacts").select("agent_id").eq("user_id", context.userId),
       context.supabase.from("deals").select("agent_id, stage, value").eq("user_id", context.userId),
       context.supabase.from("knowledge_files").select("agent_id, file_name").eq("user_id", context.userId),
