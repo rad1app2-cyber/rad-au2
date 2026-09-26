@@ -4,7 +4,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 
 // Free Google Gemini API (user's own GEMINI_API_KEY on the free tier).
-const MODELS = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-flash-latest"];
+const MODELS = ["gemini-3.8-flash", "gemini-flash-latest", "gemini-3.1-flash-lite"];
 
 const SYSTEM = `أنت "ردّ"، مساعد إعداد ذكي داخل تطبيق يربط رقم واتساب الشركة بذكاء اصطناعي يرد على العملاء.
 تحدّث بالعربية فقط، بأسلوب ودود ومختصر، واسأل سؤالًا واحدًا في كل رسالة.
