@@ -21,6 +21,8 @@ const SYSTEM = `أنت "ردّ"، مساعد إعداد ذكي داخل تطبي
 - إذا كتب المستخدم "تم الربط": استدعِ check_connection. إن كانت الحالة open فهنّئه وأخبره أن المساعد يعمل الآن. وإلا أخبره أن الربط لم يكتمل واقترح كودًا جديدًا.
 - إذا كتب "انتهت صلاحية الكود": استدعِ generate_pairing_code مرة أخرى.
 - إذا رفع ملفًا ستصلك رسالة نظام بنتيجة الرفع؛ أكّد له أنك تعلّمت محتواه.
+إذا كان لدى المستخدم مساعد موجود، تحدث عنه مباشرة ولا تبدأ الإعداد من جديد إلا إذا طلب إنشاء مساعد آخر.
+لديك بيانات المساعدين وإحصاءاتهم الفعلية مرفقة مع كل طلب. استخدمها عند الإجابة عن أرقام الرسائل والمحادثات والعملاء والصفقات وحالة الربط، ولا تختلق أرقامًا. الإحصاءات خلال آخر 14 يومًا حيث يُذكر ذلك.
 لا تخترع أرقامًا أو بيانات لم يقدّمها المستخدم.`;
 
 const TOOLS = [
@@ -111,6 +113,31 @@ export const onboardChat = createServerFn({ method: "POST" })
       }
     })();
 
+    const since = new Date(Date.now() - 13 * 86400000).toISOString();
+    const [{ data: agents, error: agentsError }, { data: messages, error: messagesError }, { data: contacts, error: contactsError }, { data: deals, error: dealsError }, { data: files, error: filesError }] = await Promise.all([
+      context.supabase.from("agents").select("id, ai_name, whatsapp_number, employee_number, persona, job, greeting, status, active").eq("user_id", context.userId),
+      context.supabase.from("messages").select("agent_id, remote_jid, role").eq("user_id", context.userId).gte("created_at", since),
+      context.supabase.from("contacts").select("agent_id").eq("user_id", context.userId),
+      context.supabase.from("deals").select("agent_id, stage, value").eq("user_id", context.userId),
+      context.supabase.from("knowledge_files").select("agent_id, file_name").eq("user_id", context.userId),
+    ]);
+    if (agentsError || messagesError || contactsError || dealsError || filesError) throw new Error("تعذّر تحميل بيانات مساعديك الآن");
+    if (agentId && !agents?.some((a) => a.id === agentId)) agentId = null;
+    if (!agentId && agents?.length) agentId = agents[0]?.id ?? null;
+    const summary = (agents ?? []).map((a) => {
+      const m = (messages ?? []).filter((row) => row.agent_id === a.id);
+      const d = (deals ?? []).filter((row) => row.agent_id === a.id);
+      return {
+        ...a,
+        messages14d: m.length,
+        conversations14d: new Set(m.map((row) => row.remote_jid)).size,
+        contacts: (contacts ?? []).filter((row) => row.agent_id === a.id).length,
+        deals: d.length,
+        wonDeals: d.filter((row) => row.stage === "won").length,
+        openDealValue: d.filter((row) => !["won", "lost"].includes(row.stage)).reduce((sum, row) => sum + Number(row.value ?? 0), 0),
+        knowledgeFiles: (files ?? []).filter((row) => row.agent_id === a.id).map((row) => row.file_name),
+      };
+    });
     const contents: Content[] = data.messages.map((m) => ({
       role: m.role === "assistant" ? "model" : "user",
       parts: [{ text: m.text }],
@@ -118,6 +145,7 @@ export const onboardChat = createServerFn({ method: "POST" })
     if (contents.length === 0 || contents[0]!.role !== "user") {
       contents.unshift({ role: "user", parts: [{ text: "مرحبًا، ابدأ الإعداد معي." }] });
     }
+    contents[0]?.parts.unshift({ text: `بيانات حسابي الحالية (من النظام، وليست رسالة مني): ${JSON.stringify(summary)}. ${summary.length ? "لدي مساعدون موجودون، ساعدني في إدارتهم ولا تبدأ إعداد مساعد جديد تلقائيًا." : "لا يوجد مساعد بعد، ابدأ الإعداد."}` });
 
     async function getAgent() {
       if (!agentId) throw new Error("لم يتم إنشاء المساعد بعد");
@@ -129,6 +157,7 @@ export const onboardChat = createServerFn({ method: "POST" })
     async function runTool(name: string, args: Record<string, string>) {
       const evo = await import("./evolution.server");
       if (name === "create_agent") {
+        if (agentId && !data.messages.some((m) => /مساعد جديد|مساعد آخر|أنشئ|إنشاء/.test(m.text))) return { ok: false, error: "يوجد مساعد مسبقًا؛ اطلب تأكيد المستخدم قبل إنشاء آخر" };
         const instanceName = `radd_${context.userId.slice(0, 8)}_${Date.now().toString(36)}`;
         const { data: agent, error } = await context.supabase
           .from("agents")

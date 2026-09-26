@@ -1,0 +1,4 @@
+- [ ] Replace the legacy setup dashboard and agent page with connected-assistant statistics and chat navigation.
+- [ ] Give the chat live, owner-scoped assistant statistics and resume an existing assistant after navigation.
+- [ ] Enlarge the blurred, luminous-edged Radd artwork behind the chat.
+- [ ] Verify desktop/mobile views and relevant app signals.
