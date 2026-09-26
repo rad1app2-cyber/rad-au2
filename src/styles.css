@@ -87,6 +87,7 @@
   --gradient-glow: radial-gradient(60% 60% at 50% 0%, rgb(139 0 255 / 0.14), transparent 70%);
   --shadow-soft: 0 10px 40px -12px rgb(0 0 0 / 0.75);
   --shadow-glow: 0 0 0 1px rgb(247 37 133 / 0.25), 0 18px 60px -18px rgb(139 0 255 / 0.5);
+  --shadow-logo: 0 0 24px rgb(247 37 133 / 0.48), 0 0 64px rgb(139 0 255 / 0.35);
 }
 
 .dark {
@@ -124,6 +125,10 @@
 
 @utility glow-card {
   box-shadow: var(--shadow-glow);
+}
+
+.chat-logo-glow {
+  filter: blur(14px) drop-shadow(var(--shadow-logo));
 }
 
 /* إخفاء أي شارة تابعة للمنصة */

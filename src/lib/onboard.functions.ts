@@ -142,14 +142,14 @@ export const onboardChat = createServerFn({ method: "POST" })
       role: m.role === "assistant" ? "model" : "user",
       parts: [{ text: m.text }],
     }));
-    if (contents.length === 0 || contents[0]!.role !== "user") {
-      contents.unshift({ role: "user", parts: [{ text: "مرحبًا، ابدأ الإعداد معي." }] });
+    if (contents.length === 0 || contents[0]?.role !== "user") {
+      contents.unshift({ role: "user", parts: [{ text: summary.length ? "مرحبًا، أخبرني عن مساعدي الحالي ونشاطه." : "مرحبًا، ابدأ الإعداد معي." }] });
     }
     contents[0]?.parts.unshift({ text: `بيانات حسابي الحالية (من النظام، وليست رسالة مني): ${JSON.stringify(summary)}. ${summary.length ? "لدي مساعدون موجودون، ساعدني في إدارتهم ولا تبدأ إعداد مساعد جديد تلقائيًا." : "لا يوجد مساعد بعد، ابدأ الإعداد."}` });
 
     async function getAgent() {
       if (!agentId) throw new Error("لم يتم إنشاء المساعد بعد");
-      const { data: a } = await context.supabase.from("agents").select("*").eq("id", agentId).maybeSingle();
+      const { data: a } = await context.supabase.from("agents").select("*").eq("user_id", context.userId).eq("id", agentId).maybeSingle();
       if (!a) throw new Error("لم يتم العثور على المساعد");
       return a;
     }
