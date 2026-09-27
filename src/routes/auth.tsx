@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { phoneToEmail, normalizePhone } from "@/lib/phone-auth";
 import { Button } from "@/components/ui/button";
+import AnimatedGenerateButton from "@/components/ui/animated-generate-button-shadcn-tailwind";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -124,9 +125,7 @@ function AuthPage() {
               <form onSubmit={signIn} className="mt-5 space-y-4">
                 <Field label="رقم الجوال" value={phone} onChange={setPhone} placeholder="9665xxxxxxxx" />
                 <Field label="كلمة المرور" value={password} onChange={setPassword} type="password" />
-                <Button type="submit" disabled={loading} className="w-full brand-gradient font-bold text-primary-foreground">
-                  {loading ? "جارٍ الدخول..." : "تسجيل الدخول"}
-                </Button>
+                <AnimatedGenerateButton type="submit" generating={loading} labelIdle="تسجيل الدخول" labelActive="جارٍ الدخول…" className="w-full brand-gradient font-bold text-primary-foreground" />
               </form>
             </TabsContent>
 
@@ -135,9 +134,7 @@ function AuthPage() {
                 <Field label="الاسم" value={name} onChange={setName} placeholder="اسمك أو اسم شركتك" />
                 <Field label="رقم الجوال" value={phone} onChange={setPhone} placeholder="9665xxxxxxxx" />
                 <Field label="كلمة المرور" value={password} onChange={setPassword} type="password" placeholder="8 أحرف على الأقل" />
-                <Button type="submit" disabled={loading} className="w-full brand-gradient font-bold text-primary-foreground">
-                  {loading ? "جارٍ الإنشاء..." : "إنشاء الحساب"}
-                </Button>
+                <AnimatedGenerateButton type="submit" generating={loading} labelIdle="إنشاء الحساب" labelActive="جارٍ الإنشاء…" className="w-full brand-gradient font-bold text-primary-foreground" />
                 <p className="text-center text-xs text-muted-foreground">
                   لا حاجة لتأكيد أي بريد إلكتروني، الحساب يعمل مباشرة.
                 </p>

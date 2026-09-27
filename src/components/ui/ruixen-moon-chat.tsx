@@ -3,6 +3,7 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import AnimatedGenerateButton from "@/components/ui/animated-generate-button-shadcn-tailwind";
 import { cn } from "@/lib/utils";
 import { Conversation, ConversationContent, ConversationScrollButton } from "@/components/ai-elements/conversation";
 import { Message, MessageContent, MessageResponse } from "@/components/ai-elements/message";
@@ -181,17 +182,13 @@ export default function RuixenMoonChat() {
                    </Button>
                   {i === lastCodeIdx && !connected && (
                     <div className="flex flex-wrap gap-2">
-                      <Button disabled={busy} className="gap-1" onClick={() => send("تم الربط", messages)}>
-                        <CheckCircle2 className="h-4 w-4" /> تم الربط
-                      </Button>
-                      <Button
+                      <AnimatedGenerateButton disabled={busy} labelIdle="تم الربط" onClick={() => send("تم الربط", messages)} />
+                      <AnimatedGenerateButton
                         disabled={busy}
                         variant="outline"
-                        className="gap-1"
+                         labelIdle="انتهت صلاحية الكود"
                         onClick={() => send("انتهت صلاحية الكود", messages)}
-                      >
-                        <RefreshCw className="h-4 w-4" /> انتهت صلاحية الكود
-                      </Button>
+                      />
                     </div>
                   )}
                 </div>
