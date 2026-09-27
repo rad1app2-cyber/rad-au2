@@ -2,7 +2,6 @@ import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { phoneToEmail, normalizePhone } from "@/lib/phone-auth";
-import { Button } from "@/components/ui/button";
 import AnimatedGenerateButton from "@/components/ui/animated-generate-button-shadcn-tailwind";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";

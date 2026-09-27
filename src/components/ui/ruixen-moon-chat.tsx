@@ -9,7 +9,7 @@ import { Conversation, ConversationContent, ConversationScrollButton } from "@/c
 import { Message, MessageContent, MessageResponse } from "@/components/ai-elements/message";
 import { PromptInput, PromptInputTextarea, PromptInputFooter, PromptInputSubmit } from "@/components/ai-elements/prompt-input";
 import { Shimmer } from "@/components/ai-elements/shimmer";
-import { ArrowUpIcon, Paperclip, CheckCircle2, RefreshCw, LayoutDashboard, LogOut, Copy, FileText } from "lucide-react";
+import { ArrowUpIcon, Paperclip, LayoutDashboard, LogOut, Copy, FileText } from "lucide-react";
 import logo from "@/assets/radd-logo.png";
 import { onboardChat } from "@/lib/onboard.functions";
 import { addKnowledge } from "@/lib/radd.functions";
