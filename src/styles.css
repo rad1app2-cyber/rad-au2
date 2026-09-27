@@ -88,6 +88,7 @@
   --shadow-soft: 0 10px 40px -12px rgb(0 0 0 / 0.75);
   --shadow-glow: 0 0 0 1px rgb(247 37 133 / 0.25), 0 18px 60px -18px rgb(139 0 255 / 0.5);
   --shadow-logo: 0 0 24px rgb(247 37 133 / 0.48), 0 0 64px rgb(139 0 255 / 0.35);
+  --button-glow: 0 0 0 1px rgb(247 37 133 / 0.28), 0 0 18px rgb(247 37 133 / 0.27);
 }
 
 .dark {
@@ -129,6 +130,34 @@
 
 .chat-logo-glow {
   filter: blur(14px) drop-shadow(var(--shadow-logo));
+}
+
+.ui-anim-btn {
+  position: relative;
+  transition: border-color .3s, box-shadow .3s, transform .3s, background-color .3s;
+}
+.ui-anim-btn:not(:disabled):hover { box-shadow: var(--button-glow); transform: translateY(-1px); }
+.ui-anim-btn:not(:disabled):active { transform: translateY(0) scale(.98); }
+.ui-anim-btn:focus-visible { box-shadow: var(--button-glow); }
+.ui-anim-action::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: var(--gradient-brand);
+  opacity: 0;
+  transition: opacity .35s;
+  z-index: -1;
+}
+.ui-anim-action:hover::after, .ui-anim-action:focus-visible::after { opacity: .16; }
+.ui-anim-spark { filter: drop-shadow(0 0 4px var(--primary)); animation: ui-spark-flicker 2.4s ease-in-out infinite; }
+.ui-anim-letter { animation: ui-letter-glow 2s ease-in-out infinite; }
+@keyframes ui-spark-flicker { 50% { opacity: .45; filter: drop-shadow(0 0 8px var(--primary)); } }
+@keyframes ui-letter-glow { 50% { text-shadow: 0 0 7px currentColor; } }
+@media (prefers-reduced-motion: reduce) {
+  .ui-anim-btn, .ui-anim-action::after { transition: none; }
+  .ui-anim-btn:not(:disabled):hover, .ui-anim-btn:not(:disabled):active { transform: none; }
+  .ui-anim-spark, .ui-anim-letter { animation: none; }
 }
 
 /* إخفاء أي شارة تابعة للمنصة */
