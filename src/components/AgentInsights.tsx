@@ -133,7 +133,7 @@ export function AgentCrmTab({ agentId }: { agentId: string }) {
           disabled={addMutation.isPending}
           className="brand-gradient font-bold text-primary-foreground"
         >
-          <Plus className="ml-2 h-4 w-4" /> إضافة عميل
+          <Plus className="ml-2 h-4 w-4" /> {addMutation.isPending ? "جارٍ إضافة العميل…" : "إضافة عميل"}
         </Button>
       </form>
 
@@ -294,7 +294,7 @@ export function AgentSalesTab({ agentId }: { agentId: string }) {
           disabled={addMutation.isPending}
           className="brand-gradient font-bold text-primary-foreground"
         >
-          <Plus className="ml-2 h-4 w-4" /> إضافة صفقة
+          <Plus className="ml-2 h-4 w-4" /> {addMutation.isPending ? "جارٍ إضافة الصفقة…" : "إضافة صفقة"}
         </Button>
       </form>
 
