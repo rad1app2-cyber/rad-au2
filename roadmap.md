@@ -2,4 +2,4 @@
 - [x] Give the chat live, owner-scoped assistant statistics and resume an existing assistant after navigation.
 - [x] Enlarge the blurred, luminous-edged Radd artwork behind the chat.
 - [x] Verify desktop/mobile views and relevant app signals.
-- [ ] Integrate animated, Arabic action-labelled buttons across the app and verify them.
+- [x] Integrate animated, Arabic action-labelled buttons across the app and verify them.
