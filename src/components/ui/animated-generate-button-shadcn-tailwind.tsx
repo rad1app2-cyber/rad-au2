@@ -37,13 +37,7 @@ export default function AnimatedGenerateButton({
       }}
     >
       <Sparkles aria-hidden="true" className="ui-anim-spark shrink-0" />
-      <span className="ui-anim-label relative z-10" aria-hidden="true">
-        {Array.from(generating ? labelActive : labelIdle).map((character, index) => (
-          <span key={`${generating}-${index}`} className="ui-anim-letter inline-block" style={{ animationDelay: `${index * 65}ms` }}>
-            {character === " " ? "\u00a0" : character}
-          </span>
-        ))}
-      </span>
+      <span className="ui-anim-label relative z-10" aria-hidden="true">{generating ? labelActive : labelIdle}</span>
     </Button>
   );
 }

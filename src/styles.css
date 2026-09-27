@@ -166,13 +166,13 @@
 .ui-anim-action:hover::before, .ui-anim-action:focus-visible::before { opacity: 1; }
 .ui-anim-action:hover::after, .ui-anim-action:focus-visible::after { opacity: .16; }
 .ui-anim-spark { filter: drop-shadow(0 0 4px var(--primary)); animation: ui-spark-flicker 2.4s ease-in-out infinite; }
-.ui-anim-letter { animation: ui-letter-glow 2s ease-in-out infinite; }
+.ui-anim-label { animation: ui-letter-glow 2s ease-in-out infinite; }
 @keyframes ui-spark-flicker { 50% { opacity: .45; filter: drop-shadow(0 0 8px var(--primary)); } }
 @keyframes ui-letter-glow { 50% { text-shadow: 0 0 7px currentColor; } }
 @media (prefers-reduced-motion: reduce) {
   .ui-anim-btn, .ui-anim-action::after, .ui-anim-action::before { transition: none; }
   .ui-anim-btn:not(:disabled):hover, .ui-anim-btn:not(:disabled):active { transform: none; }
-  .ui-anim-spark, .ui-anim-letter { animation: none; }
+  .ui-anim-spark, .ui-anim-label { animation: none; }
 }
 
 /* إخفاء أي شارة تابعة للمنصة */
