@@ -1,0 +1,13 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1790621155961,
+      "tag": "0000_agent_rules_and_blocklist",
+      "breakpoints": true
+    }
+  ]
+}

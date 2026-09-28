@@ -65,6 +65,10 @@ export const Route = createFileRoute("/api/public/evolution/$agentId")({
           .eq("id", params.agentId)
           .maybeSingle();
         if (!agent || !agent.active) return new Response("no agent");
+        const sender = jid.split("@")[0]!.replace(/\D/g, "");
+        if ((agent.blocked_numbers ?? []).some((n: string) => sender.endsWith(n) || n.endsWith(sender))) {
+          return new Response("blocked");
+        }
 
         const evo = await import("@/lib/evolution.server");
 

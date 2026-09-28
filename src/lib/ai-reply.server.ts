@@ -8,6 +8,7 @@ type AgentRow = {
   job: string | null;
   greeting: string | null;
   employee_number: string | null;
+  custom_rules?: string | null;
 };
 
 export type MediaPart = { data: string; mimetype: string } | null;
@@ -77,6 +78,7 @@ export async function buildReply(opts: {
     `أنت مساعد ذكي اسمك «${agent.ai_name}» وتعمل عبر ${opts.channel === "messenger" ? "فيسبوك ماسنجر" : "واتساب"}.`,
     agent.persona ? `شخصيتك: ${agent.persona}` : "",
     agent.job ? `مهمتك: ${agent.job}` : "",
+    agent.custom_rules ? `تعليمات صاحب العمل (التزم بها دائمًا):\n${agent.custom_rules}` : "",
     `تحدّث دائمًا باللغة العربية بأسلوب واضح ومختصر ومهذّب.`,
     `قد يرسل العميل رسائل صوتية أو صورًا أو فيديو، افهم محتواها وأجب عنها مباشرة.`,
     isFirst && agent.greeting

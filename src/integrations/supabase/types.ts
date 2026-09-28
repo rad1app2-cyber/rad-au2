@@ -18,7 +18,9 @@ export type Database = {
         Row: {
           active: boolean
           ai_name: string
+          blocked_numbers: string[]
           created_at: string
+          custom_rules: string
           employee_number: string | null
           greeting: string
           handoff_message: string
@@ -34,7 +36,9 @@ export type Database = {
         Insert: {
           active?: boolean
           ai_name: string
+          blocked_numbers?: string[]
           created_at?: string
+          custom_rules?: string
           employee_number?: string | null
           greeting?: string
           handoff_message?: string
@@ -50,7 +54,9 @@ export type Database = {
         Update: {
           active?: boolean
           ai_name?: string
+          blocked_numbers?: string[]
           created_at?: string
+          custom_rules?: string
           employee_number?: string | null
           greeting?: string
           handoff_message?: string
