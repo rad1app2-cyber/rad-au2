@@ -23,7 +23,15 @@ const SYSTEM = `أنت "ردّ"، مساعد إعداد ذكي داخل تطبي
 - إذا رفع ملفًا ستصلك رسالة نظام بنتيجة الرفع؛ أكّد له أنك تعلّمت محتواه.
 إذا كان لدى المستخدم مساعد موجود، تحدث عنه مباشرة ولا تبدأ الإعداد من جديد إلا إذا طلب إنشاء مساعد آخر.
 لديك بيانات المساعدين وإحصاءاتهم الفعلية مرفقة مع كل طلب. استخدمها عند الإجابة عن أرقام الرسائل والمحادثات والعملاء والصفقات وحالة الربط، ولا تختلق أرقامًا. الإحصاءات خلال آخر 14 يومًا حيث يُذكر ذلك.
-لا تخترع أرقامًا أو بيانات لم يقدّمها المستخدم.`;
+لا تخترع أرقامًا أو بيانات لم يقدّمها المستخدم.
+أنت أيضًا مدير المساعد الكامل: نفّذ أي طلب يخص التطبيق والمساعد باستخدام الأدوات، ولا تقل إنك لا تستطيع إن وُجدت أداة مناسبة. أمثلة:
+- "لا ترد على الرقم X" → block_number. "ارجع رد عليه" → unblock_number.
+- تغيير الاسم/الشخصية/المهمة/الترحيب/رقم الموظف/رسالة التحويل، أو إيقاف المساعد وتشغيله → update_agent.
+- أي تعليمات سلوك دائمة (مثل: لا تذكر الأسعار، رد بالإنجليزية إن كتب العميل بها، أوقات الدوام...) → add_rule. لعرضها أو مسحها → list_rules / clear_rules.
+- عرض ملفات المعرفة أو حذف ملف → list_knowledge / delete_knowledge.
+- ربط قاعدة بيانات Supabase ليقرأ المساعد بياناتها الحية: اطلب من المستخدم خطوة بخطوة رابط المشروع (Project URL) ثم مفتاح anon/publishable (من إعدادات المشروع > API)، واختياريًا أسماء الجداول، ثم استدعِ connect_database. إن فشل اشرح السبب بوضوح (مثلًا الحاجة لسياسة قراءة عامة أو كتابة أسماء الجداول). لعرضها أو فصلها → list_databases / remove_database.
+- إذا كان للمستخدم أكثر من مساعد ولم يحدد، اسأله أيّها (باستخدام select_agent بالمعرّف).
+لا تنفّذ طلبات خارج نطاق التطبيق؛ اعتذر بلطف.`;
 
 const TOOLS = [
   {
@@ -54,6 +62,19 @@ const TOOLS = [
         },
       },
       { name: "generate_pairing_code", description: "إنشاء كود ربط واتساب حقيقي", parameters: { type: "OBJECT", properties: {} } },
+      { name: "update_agent", description: "تعديل إعدادات المساعد (أرسل الحقول المطلوب تغييرها فقط)", parameters: { type: "OBJECT", properties: { ai_name: { type: "STRING" }, persona: { type: "STRING" }, job: { type: "STRING" }, greeting: { type: "STRING" }, employee_number: { type: "STRING", description: "none لحذفه" }, handoff_message: { type: "STRING" }, active: { type: "BOOLEAN" } } } },
+      { name: "block_number", description: "منع المساعد من الرد على رقم", parameters: { type: "OBJECT", properties: { number: { type: "STRING" } }, required: ["number"] } },
+      { name: "unblock_number", description: "إلغاء منع رقم", parameters: { type: "OBJECT", properties: { number: { type: "STRING" } }, required: ["number"] } },
+      { name: "list_blocked", description: "عرض الأرقام الممنوعة", parameters: { type: "OBJECT", properties: {} } },
+      { name: "add_rule", description: "إضافة تعليمات سلوك دائمة للمساعد", parameters: { type: "OBJECT", properties: { rule: { type: "STRING" } }, required: ["rule"] } },
+      { name: "list_rules", description: "عرض التعليمات الحالية", parameters: { type: "OBJECT", properties: {} } },
+      { name: "clear_rules", description: "مسح كل التعليمات أو استبدالها بنص جديد", parameters: { type: "OBJECT", properties: { replacement: { type: "STRING" } } } },
+      { name: "list_knowledge", description: "عرض ملفات المعرفة", parameters: { type: "OBJECT", properties: {} } },
+      { name: "delete_knowledge", description: "حذف ملف معرفة بالمعرّف", parameters: { type: "OBJECT", properties: { id: { type: "STRING" } }, required: ["id"] } },
+      { name: "connect_database", description: "ربط قاعدة بيانات Supabase خاصة بالمستخدم", parameters: { type: "OBJECT", properties: { project_url: { type: "STRING" }, anon_key: { type: "STRING" }, tables: { type: "STRING", description: "أسماء جداول مفصولة بفاصلة، اختياري" }, label: { type: "STRING" } }, required: ["project_url", "anon_key"] } },
+      { name: "list_databases", description: "عرض قواعد البيانات المربوطة", parameters: { type: "OBJECT", properties: {} } },
+      { name: "remove_database", description: "فصل قاعدة بيانات بالمعرّف", parameters: { type: "OBJECT", properties: { id: { type: "STRING" } }, required: ["id"] } },
+      { name: "select_agent", description: "اختيار المساعد الذي تُطبَّق عليه الأوامر", parameters: { type: "OBJECT", properties: { id: { type: "STRING" } }, required: ["id"] } },
       { name: "check_connection", description: "فحص حالة ربط واتساب", parameters: { type: "OBJECT", properties: {} } },
     ],
   },
@@ -114,7 +135,7 @@ export const onboardChat = createServerFn({ method: "POST" })
     })();
 
     const since = new Date(Date.now() - 13 * 86400000).toISOString();
-    const { data: agents, error: agentsError } = await context.supabase.from("agents").select("id, ai_name, whatsapp_number, employee_number, persona, job, greeting, status, active").eq("user_id", context.userId);
+    const { data: agents, error: agentsError } = await context.supabase.from("agents").select("id, ai_name, whatsapp_number, employee_number, persona, job, greeting, status, active, blocked_numbers, custom_rules").eq("user_id", context.userId);
     if (agentsError) throw new Error("تعذّر تحميل بيانات مساعديك الآن");
     const [{ data: messages, error: messagesError }, { data: contacts, error: contactsError }, { data: deals, error: dealsError }, { data: files, error: filesError }] = await Promise.all([
       agents?.length ? context.supabase.from("messages").select("agent_id, remote_jid, role").in("agent_id", agents.map((a) => a.id)).gte("created_at", since) : Promise.resolve({ data: [], error: null }),
@@ -156,7 +177,72 @@ export const onboardChat = createServerFn({ method: "POST" })
       return a;
     }
 
-    async function runTool(name: string, args: Record<string, string>) {
+    async function runTool(name: string, rawArgs: Record<string, unknown>) {
+      const args = Object.fromEntries(Object.entries(rawArgs).map(([k, v]) => [k, typeof v === "string" ? v : String(v)])) as Record<string, string>;
+      const digits = (v?: string) => (v ?? "").replace(/\D/g, "");
+      if (name === "select_agent") {
+        if (!agents?.some((a) => a.id === args["id"])) return { ok: false, error: "معرّف غير صحيح" };
+        agentId = args["id"]!;
+        return { ok: true };
+      }
+      if (name === "update_agent") {
+        const a = await getAgent();
+        const patch: Record<string, unknown> = {};
+        for (const k of ["ai_name", "persona", "job", "greeting", "handoff_message"]) if (args[k]) patch[k] = args[k];
+        if (args["employee_number"]) patch["employee_number"] = args["employee_number"] === "none" ? null : digits(args["employee_number"]) || null;
+        if (typeof rawArgs["active"] === "boolean") patch["active"] = rawArgs["active"];
+        if (!Object.keys(patch).length) return { ok: false, error: "لا توجد تغييرات" };
+        const { error } = await context.supabase.from("agents").update(patch).eq("id", a.id);
+        return error ? { ok: false, error: error.message } : { ok: true, updated: Object.keys(patch) };
+      }
+      if (name === "block_number" || name === "unblock_number" || name === "list_blocked") {
+        const a = await getAgent();
+        let list: string[] = a.blocked_numbers ?? [];
+        if (name === "list_blocked") return { blocked: list };
+        const n = digits(args["number"]);
+        if (n.length < 6) return { ok: false, error: "رقم غير صحيح، اطلبه مع رمز الدولة" };
+        list = name === "block_number" ? Array.from(new Set([...list, n])) : list.filter((x) => x !== n);
+        const { error } = await context.supabase.from("agents").update({ blocked_numbers: list }).eq("id", a.id);
+        return error ? { ok: false, error: error.message } : { ok: true, blocked: list };
+      }
+      if (name === "add_rule" || name === "list_rules" || name === "clear_rules") {
+        const a = await getAgent();
+        if (name === "list_rules") return { rules: a.custom_rules || "(لا توجد)" };
+        const rules = name === "add_rule" ? [a.custom_rules, `- ${args["rule"]}`].filter(Boolean).join("\n") : args["replacement"] ?? "";
+        const { error } = await context.supabase.from("agents").update({ custom_rules: rules }).eq("id", a.id);
+        return error ? { ok: false, error: error.message } : { ok: true, rules };
+      }
+      if (name === "list_knowledge") {
+        const a = await getAgent();
+        const { data: k } = await context.supabase.from("knowledge_files").select("id, file_name").eq("agent_id", a.id);
+        return { files: k ?? [] };
+      }
+      if (name === "delete_knowledge") {
+        const a = await getAgent();
+        const { error } = await context.supabase.from("knowledge_files").delete().eq("agent_id", a.id).eq("id", args["id"] ?? "");
+        return error ? { ok: false, error: error.message } : { ok: true };
+      }
+      if (name === "connect_database") {
+        const a = await getAgent();
+        const url = (args["project_url"] ?? "").trim().replace(/\/+$/, "");
+        const key = (args["anon_key"] ?? "").trim();
+        if (/service_role|sb_secret_/.test(key)) return { ok: false, error: "لا ترسل المفتاح السري، استخدم مفتاح anon/publishable فقط" };
+        const { verifySource } = await import("./supabase-source.server");
+        const wanted = (args["tables"] ?? "").split(/[,\n،]/).map((t) => t.trim()).filter(Boolean);
+        const { tables } = await verifySource(url, key, wanted);
+        const { error } = await context.supabase.from("data_sources").insert({ agent_id: a.id, user_id: context.userId, project_url: url, anon_key: key, tables, label: args["label"] || new URL(url).hostname });
+        return error ? { ok: false, error: error.message } : { ok: true, tables };
+      }
+      if (name === "list_databases") {
+        const a = await getAgent();
+        const { data: ds } = await context.supabase.from("data_sources").select("id, label, tables").eq("agent_id", a.id);
+        return { databases: ds ?? [] };
+      }
+      if (name === "remove_database") {
+        const a = await getAgent();
+        const { error } = await context.supabase.from("data_sources").delete().eq("agent_id", a.id).eq("id", args["id"] ?? "");
+        return error ? { ok: false, error: error.message } : { ok: true };
+      }
       const evo = await import("./evolution.server");
       if (name === "create_agent") {
         if (agentId && !data.messages.some((m) => /مساعد جديد|مساعد آخر|أنشئ|إنشاء/.test(m.text))) return { ok: false, error: "يوجد مساعد مسبقًا؛ اطلب تأكيد المستخدم قبل إنشاء آخر" };
@@ -233,7 +319,7 @@ export const onboardChat = createServerFn({ method: "POST" })
       const content = await callGemini(contents);
       contents.push({ role: "model", parts: content.parts });
       const calls = content.parts.filter((p) => p["functionCall"]) as {
-        functionCall: { name: string; args?: Record<string, string> };
+        functionCall: { name: string; args?: Record<string, unknown> };
       }[];
       const text = content.parts
         .filter((p) => typeof p["text"] === "string" && !p["thought"])
