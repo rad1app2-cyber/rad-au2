@@ -10,7 +10,7 @@ const SYSTEM = `أنت "ردّ"، مساعد إعداد ذكي داخل تطبي
 تحدّث بالعربية فقط، بأسلوب ودود ومختصر، واسأل سؤالًا واحدًا في كل رسالة.
 مهمتك إعداد المساعد خطوة بخطوة:
 1) اسأل عن اسم الشركة/النشاط واسم المساعد الذي سيرد على العملاء.
-2) اسأل عن رقم واتساب الذي سيُربط (مع رمز الدولة، أرقام فقط).
+2) اطلب رقم واتساب الذي سيُربط كاملًا بالصيغة الدولية مع علامة + ورمز الدولة، مثال: +9613123456. إن كتبه بدون + أو بصفر في البداية فاطلب منه كتابته بالصيغة الصحيحة قبل المتابعة.
 3) اسأل عن رقم موظف اختياري لإرسال رسالة الاسترداد/التحويل عندما يحتاج العميل إنسانًا (يمكنه التخطي).
 4) اسأل باختصار عن شخصية المساعد ومهمته وجملة الترحيب (اقترح قيمًا مناسبة إن لم يحددها).
 عندما تكتمل البيانات استدعِ create_agent فورًا.
@@ -43,7 +43,7 @@ const TOOLS = [
           type: "OBJECT",
           properties: {
             ai_name: { type: "STRING" },
-            whatsapp_number: { type: "STRING", description: "أرقام فقط مع رمز الدولة" },
+            whatsapp_number: { type: "STRING", description: "الرقم الكامل كما كتبه المستخدم ويبدأ بـ + ورمز الدولة" },
             employee_number: { type: "STRING", description: "فارغ إن لم يوجد" },
             persona: { type: "STRING" },
             job: { type: "STRING" },
@@ -187,7 +187,7 @@ export const onboardChat = createServerFn({ method: "POST" })
       }
       if (name === "update_agent") {
         const a = await getAgent();
-        const patch: Record<string, unknown> = {};
+        const patch: Record<string, any> = {};
         for (const k of ["ai_name", "persona", "job", "greeting", "handoff_message"]) if (args[k]) patch[k] = args[k];
         if (args["employee_number"]) patch["employee_number"] = args["employee_number"] === "none" ? null : digits(args["employee_number"]) || null;
         if (typeof rawArgs["active"] === "boolean") patch["active"] = rawArgs["active"];
@@ -246,6 +246,9 @@ export const onboardChat = createServerFn({ method: "POST" })
       const evo = await import("./evolution.server");
       if (name === "create_agent") {
         if (agentId && !data.messages.some((m) => /مساعد جديد|مساعد آخر|أنشئ|إنشاء/.test(m.text))) return { ok: false, error: "يوجد مساعد مسبقًا؛ اطلب تأكيد المستخدم قبل إنشاء آخر" };
+        const rawNum = (args["whatsapp_number"] ?? "").trim().replace(/[\s\-()]/g, "").replace(/^00/, "+");
+        if (!/^\+[1-9]\d{7,14}$/.test(rawNum)) return { ok: false, error: "الرقم يجب أن يكون كاملًا بالصيغة الدولية ويبدأ بـ + ورمز الدولة (مثال +9613123456). اطلبه من المستخدم مجددًا" };
+        args["whatsapp_number"] = rawNum;
         const instanceName = `radd_${context.userId.slice(0, 8)}_${Date.now().toString(36)}`;
         const { data: agent, error } = await context.supabase
           .from("agents")

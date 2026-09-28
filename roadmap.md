@@ -3,3 +3,4 @@
 - [x] Enlarge the blurred, luminous-edged Radd artwork behind the chat.
 - [x] Verify desktop/mobile views and relevant app signals.
 - [x] Integrate animated, Arabic action-labelled buttons across the app and verify them.
+- [x] Assistant asks for full WhatsApp number with + and validates it before the pairing code
