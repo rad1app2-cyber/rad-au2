@@ -187,10 +187,10 @@ export const onboardChat = createServerFn({ method: "POST" })
       }
       if (name === "update_agent") {
         const a = await getAgent();
-        const patch: Record<string, any> = {};
-        for (const k of ["ai_name", "persona", "job", "greeting", "handoff_message"]) if (args[k]) patch[k] = args[k];
-        if (args["employee_number"]) patch["employee_number"] = args["employee_number"] === "none" ? null : digits(args["employee_number"]) || null;
-        if (typeof rawArgs["active"] === "boolean") patch["active"] = rawArgs["active"];
+        const patch: { ai_name?: string; persona?: string; job?: string; greeting?: string; handoff_message?: string; employee_number?: string | null; active?: boolean } = {};
+        for (const k of ["ai_name", "persona", "job", "greeting", "handoff_message"] as const) if (args[k]) patch[k] = args[k];
+        if (args["employee_number"]) patch.employee_number = args["employee_number"] === "none" ? null : digits(args["employee_number"]) || null;
+        if (typeof rawArgs["active"] === "boolean") patch.active = rawArgs["active"] as boolean;
         if (!Object.keys(patch).length) return { ok: false, error: "لا توجد تغييرات" };
         const { error } = await context.supabase.from("agents").update(patch).eq("id", a.id);
         return error ? { ok: false, error: error.message } : { ok: true, updated: Object.keys(patch) };
