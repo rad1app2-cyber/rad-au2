@@ -120,9 +120,19 @@ export default function RuixenMoonChat() {
 
   return (
     <div className="relative flex h-dvh w-full flex-col items-center overflow-hidden bg-background" dir="rtl">
-      <div className="pointer-events-none absolute inset-0 mx-auto flex w-full max-w-3xl items-center justify-center overflow-hidden" aria-hidden="true">
-        <img src={logo} alt="" className="chat-logo-glow h-auto w-[min(155vw,68rem)] max-w-none select-none opacity-25" />
-        <img src={logo} alt="" className="absolute h-auto w-[min(155vw,68rem)] max-w-none select-none opacity-[0.08] blur-3xl" />
+      <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
+        {/* soft brand-color bloom behind everything, like a sunset behind the flower */}
+        <div className="absolute inset-x-[-20%] bottom-[-35%] h-[85%] rounded-[100%] bg-[radial-gradient(ellipse_at_center,var(--accent)_0%,var(--primary)_35%,transparent_70%)] opacity-30 blur-3xl" />
+        {/* only the top of the flower peeks up from the bottom edge, faded and glowing */}
+        <div className="absolute inset-x-0 bottom-0 flex justify-center">
+          <img
+            src={logo}
+            alt=""
+            className="chat-logo-bloom h-auto w-[min(190vw,90rem)] max-w-none translate-y-[58%] select-none opacity-40"
+          />
+        </div>
+        {/* fade the bloom into the background toward the top */}
+        <div className="absolute inset-0 bg-[linear-gradient(to_bottom,var(--background)_0%,transparent_45%,transparent_100%)]" />
       </div>
 
       <header className="relative z-10 flex w-full max-w-3xl items-center justify-between px-4 py-4">

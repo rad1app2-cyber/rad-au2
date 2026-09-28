@@ -132,6 +132,15 @@
   filter: blur(14px) drop-shadow(var(--shadow-logo));
 }
 
+/* Bottom-anchored logo bloom: only the top of the flower shows, faded with glowing edges */
+.chat-logo-bloom {
+  filter: blur(18px) saturate(140%)
+    drop-shadow(0 -30px 60px color-mix(in oklab, var(--primary) 55%, transparent))
+    drop-shadow(0 -10px 30px color-mix(in oklab, var(--accent) 45%, transparent));
+  mask-image: linear-gradient(to bottom, transparent 0%, black 22%);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 22%);
+}
+
 .ui-anim-btn {
   position: relative;
   transition: border-color .3s, box-shadow .3s, transform .3s, background-color .3s;
