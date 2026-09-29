@@ -87,28 +87,40 @@ async function callGemini(contents: Content[]) {
   const apiKey = process.env["GEMINI_API_KEY"];
   if (!apiKey) throw new Error("مفتاح Gemini غير مضبوط");
   let lastErr = "";
-  for (const model of MODELS) {
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          system_instruction: { parts: [{ text: SYSTEM }] },
-          contents,
-          tools: TOOLS,
-          generationConfig: { temperature: 0.5 },
-        }),
-      },
-    );
-    if (!res.ok) {
-      lastErr = `${res.status} ${(await res.text()).slice(0, 300)}`;
-      console.error("Gemini error", model, lastErr);
-      continue;
+  // Free-tier Gemini is often briefly busy (429/503): cycle through models, then wait and retry.
+  const waits = [0, 2000, 5000, 10000];
+  for (const wait of waits) {
+    if (wait) await new Promise((r) => setTimeout(r, wait));
+    for (const model of MODELS) {
+      let res: Response;
+      try {
+        res = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              system_instruction: { parts: [{ text: SYSTEM }] },
+              contents,
+              tools: TOOLS,
+              generationConfig: { temperature: 0.5 },
+            }),
+          },
+        );
+      } catch (e) {
+        lastErr = `network ${String(e)}`;
+        continue;
+      }
+      if (!res.ok) {
+        lastErr = `${res.status} ${(await res.text()).slice(0, 300)}`;
+        console.error("Gemini error", model, lastErr);
+        if (res.status === 401 || res.status === 403) throw new Error("مفتاح Gemini غير صالح");
+        continue;
+      }
+      const json = (await res.json()) as { candidates?: { content?: Content }[] };
+      const content = json.candidates?.[0]?.content;
+      if (content?.parts?.length) return content;
     }
-    const json = (await res.json()) as { candidates?: { content?: Content }[] };
-    const content = json.candidates?.[0]?.content;
-    if (content?.parts?.length) return content;
   }
   if (lastErr.startsWith("429")) throw new Error("تم تجاوز الحد المجاني المؤقت لـ Gemini، حاول بعد دقيقة");
   throw new Error("تعذّر الوصول إلى الذكاء الاصطناعي حاليًا");

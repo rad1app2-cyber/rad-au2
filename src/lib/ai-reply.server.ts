@@ -130,45 +130,46 @@ export async function buildReply(opts: {
       console.error("GEMINI_API_KEY missing");
       return null;
     }
-    for (const model of MODELS) {
-      let res: Response;
-      try {
-        res = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              system_instruction: { parts: [{ text: system }] },
-              contents: [...historyContents, { role: "user", parts }],
-              generationConfig: { temperature: 0.6, maxOutputTokens: 4096 },
-            }),
-          },
-        );
-      } catch (e) {
-        console.error("AI network error", model, e);
-        continue;
-      }
-      if (!res.ok) {
-        const body = (await res.text()).slice(0, 600);
-        console.error("AI error", model, res.status, body);
-        // 404 = model not available for this key, 400/413 = payload too large: try a smaller/next model.
-        if (res.status === 404 || res.status === 400 || res.status === 413) continue;
-        if ([401, 403, 429, 500, 503].includes(res.status)) {
-          blocked = res.status !== 500 && res.status !== 503;
+    // Free-tier Gemini is often briefly busy (429/503): cycle models, then wait and retry.
+    let keyInvalid = false;
+    for (const wait of [0, 2000, 5000, 10000, 20000]) {
+      if (wait) await new Promise((r) => setTimeout(r, wait));
+      for (const model of MODELS) {
+        let res: Response;
+        try {
+          res = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                system_instruction: { parts: [{ text: system }] },
+                contents: [...historyContents, { role: "user", parts }],
+                generationConfig: { temperature: 0.6, maxOutputTokens: 4096 },
+              }),
+            },
+          );
+        } catch (e) {
+          console.error("AI network error", model, e);
           continue;
         }
-        continue;
+        if (!res.ok) {
+          const body = (await res.text()).slice(0, 600);
+          console.error("AI error", model, res.status, body);
+          if (res.status === 401 || res.status === 403) keyInvalid = true;
+          continue;
+        }
+        const json = (await res.json()) as {
+          candidates?: { content?: { parts?: { text?: string }[] } }[];
+        };
+        const text =
+          json.candidates?.[0]?.content?.parts
+            ?.map((p) => p.text ?? "")
+            .join("")
+            .trim() ?? "";
+        if (text) return text;
       }
-      const json = (await res.json()) as {
-        candidates?: { content?: { parts?: { text?: string }[] } }[];
-      };
-      const text =
-        json.candidates?.[0]?.content?.parts
-          ?.map((p) => p.text ?? "")
-          .join("")
-          .trim() ?? "";
-      if (text) return text;
+      if (keyInvalid) break;
     }
     blocked = true;
     return null;
