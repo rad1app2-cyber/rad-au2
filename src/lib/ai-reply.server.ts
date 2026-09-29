@@ -171,7 +171,7 @@ export async function buildReply(opts: {
       }
       if (keyInvalid) break;
     }
-    blocked = true;
+    blocked = true; // key problem or quota fully exhausted after all retries
     return null;
   }
 
