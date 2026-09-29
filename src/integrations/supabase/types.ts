@@ -27,6 +27,7 @@ export type Database = {
           id: string
           instance_name: string
           job: string
+          last_digest_on: string | null
           persona: string
           status: string
           updated_at: string
@@ -45,6 +46,7 @@ export type Database = {
           id?: string
           instance_name: string
           job?: string
+          last_digest_on?: string | null
           persona?: string
           status?: string
           updated_at?: string
@@ -63,6 +65,7 @@ export type Database = {
           id?: string
           instance_name?: string
           job?: string
+          last_digest_on?: string | null
           persona?: string
           status?: string
           updated_at?: string
@@ -70,6 +73,53 @@ export type Database = {
           whatsapp_number?: string
         }
         Relationships: []
+      }
+      appointments: {
+        Row: {
+          agent_id: string
+          created_at: string
+          customer_name: string
+          customer_phone: string
+          id: string
+          notes: string
+          property_ref: string
+          reminded: boolean
+          scheduled_at: string
+          status: string
+        }
+        Insert: {
+          agent_id: string
+          created_at?: string
+          customer_name?: string
+          customer_phone: string
+          id?: string
+          notes?: string
+          property_ref?: string
+          reminded?: boolean
+          scheduled_at: string
+          status?: string
+        }
+        Update: {
+          agent_id?: string
+          created_at?: string
+          customer_name?: string
+          customer_phone?: string
+          id?: string
+          notes?: string
+          property_ref?: string
+          reminded?: boolean
+          scheduled_at?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "appointments_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       channels: {
         Row: {
@@ -121,10 +171,15 @@ export type Database = {
           company: string
           created_at: string
           email: string
+          follow_up_at: string | null
+          follow_up_note: string
           full_name: string
           id: string
+          last_message_at: string | null
+          lead_status: string
           notes: string
           phone: string
+          request_summary: string
           source: string
           tags: string[]
           updated_at: string
@@ -135,10 +190,15 @@ export type Database = {
           company?: string
           created_at?: string
           email?: string
+          follow_up_at?: string | null
+          follow_up_note?: string
           full_name?: string
           id?: string
+          last_message_at?: string | null
+          lead_status?: string
           notes?: string
           phone?: string
+          request_summary?: string
           source?: string
           tags?: string[]
           updated_at?: string
@@ -149,10 +209,15 @@ export type Database = {
           company?: string
           created_at?: string
           email?: string
+          follow_up_at?: string | null
+          follow_up_note?: string
           full_name?: string
           id?: string
+          last_message_at?: string | null
+          lead_status?: string
           notes?: string
           phone?: string
+          request_summary?: string
           source?: string
           tags?: string[]
           updated_at?: string
@@ -359,6 +424,38 @@ export type Database = {
           phone?: string
         }
         Relationships: []
+      }
+      sent_offers: {
+        Row: {
+          agent_id: string
+          created_at: string
+          customer_phone: string
+          id: string
+          offer_ref: string
+        }
+        Insert: {
+          agent_id: string
+          created_at?: string
+          customer_phone: string
+          id?: string
+          offer_ref: string
+        }
+        Update: {
+          agent_id?: string
+          created_at?: string
+          customer_phone?: string
+          id?: string
+          offer_ref?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sent_offers_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
