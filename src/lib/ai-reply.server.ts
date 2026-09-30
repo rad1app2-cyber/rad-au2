@@ -19,6 +19,7 @@ export type ReplyResult = {
   handoff: boolean;
   handoffSummary: string;
   blocked: boolean;
+  photos: string[];
 };
 
 const MODELS = ["gemini-3.8-flash", "gemini-flash-latest", "gemini-3.1-flash-lite"];
@@ -116,6 +117,7 @@ export async function buildReply(opts: {
       `في آخر كل ردّ أضف أسطرًا داخلية (لن يراها العميل) بهذا الشكل حرفيًا عند الحاجة:`,
       `[LEAD] {"summary":"ملخص طلب العميل المتراكم","status":"new|interested|hot|cold|closed","follow_up_hours":رقم أو null}`,
       `[OFFER] مرجع/اسم كل عرض أرسلته في هذا الرد، كل عرض في سطر`,
+      `[PHOTO] رابط صورة (http...) لكل عقار تعرضه إذا كان في بياناته رابط صورة، بحد أقصى 5 صور، كل رابط في سطر.`,
       `[BOOK] {"when":"تاريخ ووقت ISO 8601","property":"العقار","notes":"ملاحظات"} فقط عند اتفاق العميل على موعد معاينة محدد.`,
       `التاريخ الحالي: ${new Date().toISOString()}`,
     ].join("\n"),
@@ -198,7 +200,7 @@ export async function buildReply(opts: {
     ]);
   }
 
-  if (!reply) return { reply: "", handoff: false, handoffSummary: "", blocked };
+  if (!reply) return { reply: "", handoff: false, handoffSummary: "", blocked, photos: [] };
 
   // Hidden bookkeeping lines: customer memory, sent offers, appointments.
   try {
@@ -232,7 +234,8 @@ export async function buildReply(opts: {
   } catch (e) {
     console.error("bookkeeping failed", e);
   }
-  reply = reply.replace(/^\s*\[(LEAD|OFFER|BOOK)\].*$/gm, "").trim();
+  const photos = [...reply.matchAll(/\[PHOTO\]\s*(https?:\/\/\S+)/g)].map((m) => m[1]!).slice(0, 5);
+  reply = reply.replace(/^\s*\[(LEAD|OFFER|BOOK|PHOTO)\].*$/gm, "").trim();
 
   const handoffMatch = reply.match(/\[HANDOFF\]\s*:?\s*(?:ملخص\s*:)?\s*([\s\S]*)$/i);
   const clientReply = reply.replace(/\[HANDOFF\][\s\S]*$/i, "").trim();
@@ -241,5 +244,6 @@ export async function buildReply(opts: {
     handoff: Boolean(handoffMatch),
     handoffSummary: handoffMatch?.[1]?.trim() ?? "",
     blocked: false,
+    photos,
   };
 }
