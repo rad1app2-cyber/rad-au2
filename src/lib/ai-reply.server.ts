@@ -75,10 +75,38 @@ export async function buildReply(opts: {
   }
 
   const isFirst = !history || history.length === 0;
-  const knowledge = (files ?? [])
-    .map((f) => `### ${f.file_name}\n${f.content.slice(0, 20000)}`)
-    .join("\n\n")
-    .slice(0, 60000);
+  // Big files: split into chunks and keep the ones most related to the question (and recent chat).
+  const KNOW_BUDGET = 200000;
+  const allFiles = files ?? [];
+  const total = allFiles.reduce((n, f) => n + f.content.length, 0);
+  let knowledge: string;
+  if (total <= KNOW_BUDGET) {
+    knowledge = allFiles.map((f) => `### ${f.file_name}\n${f.content}`).join("\n\n");
+  } else {
+    const query = [userText, ...(history ?? []).slice(0, 4).map((h) => h.content)].join(" ");
+    const words = new Set(query.toLowerCase().split(/[^\p{L}\p{N}]+/u).filter((w) => w.length > 2));
+    const chunks = allFiles.flatMap((f) => {
+      const out: { name: string; text: string; idx: number; score: number }[] = [];
+      for (let i = 0; i < f.content.length; i += 3000) {
+        const text = f.content.slice(i, i + 3000);
+        const low = text.toLowerCase();
+        let score = 0;
+        for (const w of words) if (low.includes(w)) score++;
+        out.push({ name: f.file_name, text, idx: i, score: score + (i === 0 ? 0.5 : 0) });
+      }
+      return out;
+    });
+    chunks.sort((a, b) => b.score - a.score);
+    const picked: typeof chunks = [];
+    let used = 0;
+    for (const c of chunks) {
+      if (used + c.text.length > KNOW_BUDGET) break;
+      picked.push(c);
+      used += c.text.length;
+    }
+    picked.sort((a, b) => (a.name === b.name ? a.idx - b.idx : a.name.localeCompare(b.name)));
+    knowledge = picked.map((c) => `### ${c.name}\n${c.text}`).join("\n\n");
+  }
 
   const system = [
     `أنت مساعد ذكي اسمك «${agent.ai_name}» وتعمل عبر ${opts.channel === "messenger" ? "فيسبوك ماسنجر" : "واتساب"}.`,

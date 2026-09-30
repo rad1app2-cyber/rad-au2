@@ -8,6 +8,6 @@
 - [x] Track offers sent to each customer so none repeats
 - [x] Let the assistant book viewing appointments
 - [x] Scheduled reminders, follow-ups and daily summary to employee
-- [ ] Send property photos on WhatsApp
-- [ ] Larger knowledge files via relevance picking
+- [x] Send property photos on WhatsApp
+- [x] Larger knowledge files via relevance picking
 - [x] Remember more of each conversation (history 12 → 30)
