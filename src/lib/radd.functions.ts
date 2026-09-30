@@ -275,7 +275,7 @@ export const addKnowledgeText = createServerFn({ method: "POST" })
       agent_id: data.agent_id,
       user_id: context.userId,
       file_name: data.title,
-      content: data.content.slice(0, 200000),
+      content: data.content.slice(0, 2000000),
     });
     if (error) throw new Error(error.message);
     return { ok: true };
