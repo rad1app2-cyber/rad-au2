@@ -252,7 +252,7 @@ export const addKnowledge = createServerFn({ method: "POST" })
     } else {
       content = new TextDecoder("utf-8").decode(bytes);
     }
-    content = content.replace(/\u0000/g, "").trim().slice(0, 200000);
+    content = content.replace(/\u0000/g, "").trim().slice(0, 2000000);
     if (!content) throw new Error("لم نتمكن من قراءة نص من هذا الملف");
 
     const { error } = await context.supabase.from("knowledge_files").insert({
