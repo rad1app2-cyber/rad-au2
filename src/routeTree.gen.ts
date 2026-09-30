@@ -15,6 +15,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedAgentsAgentIdRouteImport } from './routes/_authenticated/agents.$agentId'
 import { Route as ApiPublicMessengerRouteImport } from './routes/api/public/messenger'
+import { Route as ApiPublicCronHourlyRouteImport } from './routes/api/public/cron/hourly'
 import { Route as ApiPublicEvolutionAgentIdRouteImport } from './routes/api/public/evolution/$agentId'
 
 const IndexRoute = IndexRouteImport.update({
@@ -47,6 +48,11 @@ const ApiPublicMessengerRoute = ApiPublicMessengerRouteImport.update({
   path: '/api/public/messenger',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicCronHourlyRoute = ApiPublicCronHourlyRouteImport.update({
+  id: '/api/public/cron/hourly',
+  path: '/api/public/cron/hourly',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicEvolutionAgentIdRoute =
   ApiPublicEvolutionAgentIdRouteImport.update({
     id: '/api/public/evolution/$agentId',
@@ -60,6 +66,7 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/agents/$agentId': typeof AuthenticatedAgentsAgentIdRoute
   '/api/public/messenger': typeof ApiPublicMessengerRoute
+  '/api/public/cron/hourly': typeof ApiPublicCronHourlyRoute
   '/api/public/evolution/$agentId': typeof ApiPublicEvolutionAgentIdRoute
 }
 export interface FileRoutesByTo {
@@ -68,6 +75,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/agents/$agentId': typeof AuthenticatedAgentsAgentIdRoute
   '/api/public/messenger': typeof ApiPublicMessengerRoute
+  '/api/public/cron/hourly': typeof ApiPublicCronHourlyRoute
   '/api/public/evolution/$agentId': typeof ApiPublicEvolutionAgentIdRoute
 }
 export interface FileRoutesById {
@@ -78,6 +86,7 @@ export interface FileRoutesById {
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/agents/$agentId': typeof AuthenticatedAgentsAgentIdRoute
   '/api/public/messenger': typeof ApiPublicMessengerRoute
+  '/api/public/cron/hourly': typeof ApiPublicCronHourlyRoute
   '/api/public/evolution/$agentId': typeof ApiPublicEvolutionAgentIdRoute
 }
 export interface FileRouteTypes {
@@ -88,6 +97,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/agents/$agentId'
     | '/api/public/messenger'
+    | '/api/public/cron/hourly'
     | '/api/public/evolution/$agentId'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -96,6 +106,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/agents/$agentId'
     | '/api/public/messenger'
+    | '/api/public/cron/hourly'
     | '/api/public/evolution/$agentId'
   id:
     | '__root__'
@@ -105,6 +116,7 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard'
     | '/_authenticated/agents/$agentId'
     | '/api/public/messenger'
+    | '/api/public/cron/hourly'
     | '/api/public/evolution/$agentId'
   fileRoutesById: FileRoutesById
 }
@@ -113,6 +125,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
   ApiPublicMessengerRoute: typeof ApiPublicMessengerRoute
+  ApiPublicCronHourlyRoute: typeof ApiPublicCronHourlyRoute
   ApiPublicEvolutionAgentIdRoute: typeof ApiPublicEvolutionAgentIdRoute
 }
 
@@ -160,6 +173,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicMessengerRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/cron/hourly': {
+      id: '/api/public/cron/hourly'
+      path: '/api/public/cron/hourly'
+      fullPath: '/api/public/cron/hourly'
+      preLoaderRoute: typeof ApiPublicCronHourlyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/evolution/$agentId': {
       id: '/api/public/evolution/$agentId'
       path: '/api/public/evolution/$agentId'
@@ -188,6 +208,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
   ApiPublicMessengerRoute: ApiPublicMessengerRoute,
+  ApiPublicCronHourlyRoute: ApiPublicCronHourlyRoute,
   ApiPublicEvolutionAgentIdRoute: ApiPublicEvolutionAgentIdRoute,
 }
 export const routeTree = rootRouteImport
