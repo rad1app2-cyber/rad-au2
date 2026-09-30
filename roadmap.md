@@ -4,3 +4,10 @@
 - [x] Verify desktop/mobile views and relevant app signals.
 - [x] Integrate animated, Arabic action-labelled buttons across the app and verify them.
 - [x] Assistant asks for full WhatsApp number with + and validates it before the pairing code
+- [x] Save customer memory (request summary, lead status, follow-up) automatically from WhatsApp chats
+- [x] Track offers sent to each customer so none repeats
+- [x] Let the assistant book viewing appointments
+- [ ] Scheduled reminders, follow-ups and daily summary to employee
+- [ ] Send property photos on WhatsApp
+- [ ] Larger knowledge files via relevance picking
+- [x] Remember more of each conversation (history 12 → 30)
