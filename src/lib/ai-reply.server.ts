@@ -29,7 +29,7 @@ export async function buildReply(opts: {
   userText: string;
   media?: MediaPart;
   channel: "whatsapp" | "messenger";
-  customerName?: string;
+  customerName?: string | undefined;
 }): Promise<ReplyResult> {
   const { agent, conversationId, userText } = opts;
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
