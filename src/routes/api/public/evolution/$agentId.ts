@@ -96,6 +96,7 @@ export const Route = createFileRoute("/api/public/evolution/$agentId")({
             userText,
             media: mediaPart,
             channel: "whatsapp",
+            customerName: payload.data?.pushName,
           });
         } catch (e) {
           console.error("ai failed", e);

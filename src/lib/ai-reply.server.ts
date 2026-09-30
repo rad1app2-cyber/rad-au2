@@ -9,6 +9,7 @@ type AgentRow = {
   greeting: string | null;
   employee_number: string | null;
   custom_rules?: string | null;
+  user_id?: string;
 };
 
 export type MediaPart = { data: string; mimetype: string } | null;
@@ -28,11 +29,13 @@ export async function buildReply(opts: {
   userText: string;
   media?: MediaPart;
   channel: "whatsapp" | "messenger";
+  customerName?: string | undefined;
 }): Promise<ReplyResult> {
   const { agent, conversationId, userText } = opts;
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-  const [{ data: files }, { data: history }, { data: sources }] = await Promise.all([
+  const phone = conversationId.split("@")[0]!.replace(/\D/g, "");
+  const [{ data: files }, { data: history }, { data: sources }, { data: sent }, { data: contact }] = await Promise.all([
     supabaseAdmin.from("knowledge_files").select("file_name, content").eq("agent_id", agent.id),
     supabaseAdmin
       .from("messages")
@@ -40,11 +43,13 @@ export async function buildReply(opts: {
       .eq("agent_id", agent.id)
       .eq("remote_jid", conversationId)
       .order("created_at", { ascending: false })
-      .limit(12),
+      .limit(30),
     supabaseAdmin
       .from("data_sources")
       .select("label, project_url, anon_key, tables")
       .eq("agent_id", agent.id),
+    supabaseAdmin.from("sent_offers").select("offer_ref").eq("agent_id", agent.id).eq("customer_phone", phone),
+    supabaseAdmin.from("contacts").select("id, request_summary, lead_status").eq("agent_id", agent.id).eq("phone", phone).maybeSingle(),
   ]);
 
   // Live data from the client's own database, ranked against what the customer asked for.
@@ -103,6 +108,17 @@ export async function buildReply(opts: {
           dbKnowledge,
         ].join("\n")
       : "",
+    contact?.request_summary ? `ما تعرفه عن هذا العميل من قبل: ${contact.request_summary}` : "",
+    sent && sent.length
+      ? `عروض أُرسلت لهذا العميل سابقًا، لا ترسلها مجددًا إلا إذا طلبها: ${sent.map((o) => o.offer_ref).join("، ")}`
+      : "",
+    [
+      `في آخر كل ردّ أضف أسطرًا داخلية (لن يراها العميل) بهذا الشكل حرفيًا عند الحاجة:`,
+      `[LEAD] {"summary":"ملخص طلب العميل المتراكم","status":"new|interested|hot|cold|closed","follow_up_hours":رقم أو null}`,
+      `[OFFER] مرجع/اسم كل عرض أرسلته في هذا الرد، كل عرض في سطر`,
+      `[BOOK] {"when":"تاريخ ووقت ISO 8601","property":"العقار","notes":"ملاحظات"} فقط عند اتفاق العميل على موعد معاينة محدد.`,
+      `التاريخ الحالي: ${new Date().toISOString()}`,
+    ].join("\n"),
   ]
     .filter(Boolean)
     .join("\n");
@@ -183,6 +199,40 @@ export async function buildReply(opts: {
   }
 
   if (!reply) return { reply: "", handoff: false, handoffSummary: "", blocked };
+
+  // Hidden bookkeeping lines: customer memory, sent offers, appointments.
+  try {
+    const lead = reply.match(/\[LEAD\]\s*(\{.*\})/);
+    if (lead && agent.user_id) {
+      const j = JSON.parse(lead[1]!) as { summary?: string; status?: string; follow_up_hours?: number | null };
+      const row = {
+        request_summary: j.summary ?? "",
+        lead_status: j.status ?? "new",
+        last_message_at: new Date().toISOString(),
+        follow_up_at: j.follow_up_hours ? new Date(Date.now() + j.follow_up_hours * 3600e3).toISOString() : null,
+      };
+      if (contact) await supabaseAdmin.from("contacts").update(row).eq("id", contact.id);
+      else
+        await supabaseAdmin.from("contacts").insert({
+          ...row, user_id: agent.user_id, agent_id: agent.id, phone, full_name: opts.customerName ?? "", source: opts.channel,
+        });
+    }
+    const offers = [...reply.matchAll(/\[OFFER\]\s*(.+)/g)].map((m) => m[1]!.trim()).filter(Boolean);
+    if (offers.length)
+      await supabaseAdmin.from("sent_offers").insert(offers.map((o) => ({ agent_id: agent.id, customer_phone: phone, offer_ref: o })));
+    const book = reply.match(/\[BOOK\]\s*(\{.*\})/);
+    if (book) {
+      const b = JSON.parse(book[1]!) as { when?: string; property?: string; notes?: string };
+      if (b.when && !isNaN(Date.parse(b.when)))
+        await supabaseAdmin.from("appointments").insert({
+          agent_id: agent.id, customer_phone: phone, customer_name: opts.customerName ?? "",
+          property_ref: b.property ?? "", scheduled_at: new Date(b.when).toISOString(), notes: b.notes ?? "",
+        });
+    }
+  } catch (e) {
+    console.error("bookkeeping failed", e);
+  }
+  reply = reply.replace(/^\s*\[(LEAD|OFFER|BOOK)\].*$/gm, "").trim();
 
   const handoffMatch = reply.match(/\[HANDOFF\]\s*:?\s*(?:ملخص\s*:)?\s*([\s\S]*)$/i);
   const clientReply = reply.replace(/\[HANDOFF\][\s\S]*$/i, "").trim();
