@@ -161,24 +161,31 @@ export async function fetchRows(
   key: string,
   tables: string[] = [],
   maxTables = 40,
-  rowsPerTable = 5000,
+  rowsPerTable = 100000,
 ): Promise<TableRows[]> {
   const list = (tables.length ? tables : await listTables(url, key)).slice(0, maxTables);
   const out: TableRows[] = [];
+  // The server caps each response (usually 1000 rows), so page through the whole table.
+  const PAGE = 1000;
   await Promise.all(
     list.map(async (t) => {
+      const all: Record<string, unknown>[] = [];
       try {
-        const rows = (await rest(
-          url,
-          key,
-          `/${encodeURIComponent(t)}?select=*&limit=${rowsPerTable}`,
-        )) as unknown[];
-        if (Array.isArray(rows) && rows.length) {
-          out.push({ table: t, rows: rows as Record<string, unknown>[] });
+        for (let offset = 0; offset < rowsPerTable; ) {
+          const rows = (await rest(
+            url,
+            key,
+            `/${encodeURIComponent(t)}?select=*&limit=${PAGE}&offset=${offset}`,
+          )) as unknown[];
+          if (!Array.isArray(rows) || !rows.length) break;
+          all.push(...(rows as Record<string, unknown>[]));
+          offset += rows.length;
+          if (rows.length < PAGE && rows.length < 500) break; // last page
         }
       } catch {
-        /* not readable with this key */
+        /* not readable with this key, or a later page failed — keep what we have */
       }
+      if (all.length) out.push({ table: t, rows: all });
     }),
   );
   return out;
