@@ -127,6 +127,16 @@ export const Route = createFileRoute("/api/public/evolution/$agentId")({
         }
 
         if (!result.reply) {
+          // Never leave the customer in silence: tell them we'll get back shortly.
+          const sorry = "عذرًا، عندنا ضغط مؤقت. ابعتلي رسالتك مرة تانية بعد دقيقة لو سمحت 🙏";
+          try {
+            await evo.sendText(agent.instance_name, jid.split("@")[0]!, sorry);
+            await supabaseAdmin
+              .from("messages")
+              .insert({ agent_id: agent.id, remote_jid: jid, role: "assistant", content: sorry });
+          } catch {
+            /* ignore */
+          }
           if (result.blocked && agent.employee_number) {
             try {
               await evo.sendText(
