@@ -85,7 +85,29 @@ export const Route = createFileRoute("/api/public/evolution/$agentId")({
           }
         }
 
-        const userText = text.trim() || (media ? `(أرسل العميل ${mediaLabel[media.kind]})` : "");
+        const thisText = text.trim() || (media ? `(أرسل العميل ${mediaLabel[media.kind]})` : "");
+
+        // Save the message now, then wait so a customer typing several messages gets one combined answer.
+        const { data: mine } = await supabaseAdmin
+          .from("messages")
+          .insert({ agent_id: agent.id, remote_jid: jid, role: "user", content: thisText })
+          .select("id")
+          .single();
+        await new Promise((r) => setTimeout(r, 30000));
+        const { data: recent } = await supabaseAdmin
+          .from("messages")
+          .select("id, role, content")
+          .eq("agent_id", agent.id)
+          .eq("remote_jid", jid)
+          .order("created_at", { ascending: false })
+          .limit(30);
+        if (!recent?.length || recent[0]!.id !== mine?.id) return new Response("superseded");
+        const pending: string[] = [];
+        for (const m of recent) {
+          if (m.role !== "user") break;
+          pending.unshift(m.content);
+        }
+        const userText = pending.join("\n");
 
         const { buildReply } = await import("@/lib/ai-reply.server");
         let result;
@@ -97,6 +119,7 @@ export const Route = createFileRoute("/api/public/evolution/$agentId")({
             media: mediaPart,
             channel: "whatsapp",
             customerName: payload.data?.pushName,
+            skipPendingUser: true,
           });
         } catch (e) {
           console.error("ai failed", e);
@@ -150,10 +173,9 @@ export const Route = createFileRoute("/api/public/evolution/$agentId")({
           }
         }
 
-        await supabaseAdmin.from("messages").insert([
-          { agent_id: agent.id, remote_jid: jid, role: "user", content: userText },
-          { agent_id: agent.id, remote_jid: jid, role: "assistant", content: result.reply },
-        ]);
+        await supabaseAdmin
+          .from("messages")
+          .insert({ agent_id: agent.id, remote_jid: jid, role: "assistant", content: result.reply });
 
         return new Response("ok");
       },
