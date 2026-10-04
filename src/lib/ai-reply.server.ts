@@ -64,7 +64,7 @@ export async function buildReply(opts: {
   let dbKnowledge = "";
   if (sources && sources.length) {
     const { fetchRows, renderKnowledge } = await import("./supabase-source.server");
-    const budget = Math.floor(320000 / sources.length);
+    const budget = Math.floor(120000 / sources.length);
     const chunks = await Promise.all(
       sources.map(async (s) => {
         try {
@@ -83,7 +83,7 @@ export async function buildReply(opts: {
 
   const isFirst = !history || history.length === 0;
   // Big files: split into chunks and keep the ones most related to the question (and recent chat).
-  const KNOW_BUDGET = 200000;
+  const KNOW_BUDGET = 80000;
   const allFiles = files ?? [];
   const total = allFiles.reduce((n, f) => n + f.content.length, 0);
   let knowledge: string;
@@ -189,7 +189,7 @@ export async function buildReply(opts: {
     }
     // Free-tier Gemini is often briefly busy (429/503): cycle models, then wait and retry.
     let keyInvalid = false;
-    for (const wait of [0, 2000, 5000, 10000, 20000]) {
+    for (const wait of [0, 3000, 8000]) {
       if (wait) await new Promise((r) => setTimeout(r, wait));
       for (const model of MODELS) {
         let res: Response;
