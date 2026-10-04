@@ -31,12 +31,14 @@ export async function buildReply(opts: {
   media?: MediaPart;
   channel: "whatsapp" | "messenger";
   customerName?: string | undefined;
+  /** Drop the newest unanswered customer messages from history (they're already merged into userText). */
+  skipPendingUser?: boolean;
 }): Promise<ReplyResult> {
   const { agent, conversationId, userText } = opts;
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
   const phone = conversationId.split("@")[0]!.replace(/\D/g, "");
-  const [{ data: files }, { data: history }, { data: sources }, { data: sent }, { data: contact }] = await Promise.all([
+  const [{ data: files }, { data: rawHistory }, { data: sources }, { data: sent }, { data: contact }] = await Promise.all([
     supabaseAdmin.from("knowledge_files").select("file_name, content").eq("agent_id", agent.id),
     supabaseAdmin
       .from("messages")
@@ -52,6 +54,11 @@ export async function buildReply(opts: {
     supabaseAdmin.from("sent_offers").select("offer_ref").eq("agent_id", agent.id).eq("customer_phone", phone),
     supabaseAdmin.from("contacts").select("id, request_summary, lead_status").eq("agent_id", agent.id).eq("phone", phone).maybeSingle(),
   ]);
+  let history = rawHistory ?? [];
+  if (opts.skipPendingUser) {
+    const firstAnswered = history.findIndex((h) => h.role !== "user");
+    history = firstAnswered === -1 ? [] : history.slice(firstAnswered);
+  }
 
   // Live data from the client's own database, ranked against what the customer asked for.
   let dbKnowledge = "";
@@ -113,7 +120,11 @@ export async function buildReply(opts: {
     agent.persona ? `شخصيتك: ${agent.persona}` : "",
     agent.job ? `مهمتك: ${agent.job}` : "",
     agent.custom_rules ? `تعليمات صاحب العمل (التزم بها دائمًا):\n${agent.custom_rules}` : "",
-    `تحدّث دائمًا باللغة العربية بأسلوب واضح ومختصر ومهذّب.`,
+    `تحدّث دائمًا باللغة العربية بأسلوب واضح ومهذّب.`,
+    `ردودك يجب أن تكون قصيرة جدًا كرسائل واتساب: لا مقدمات ولا تكرار ولا شرح زائد. عند عرض عقارات اعرض كل عقار في سطر أو سطرين فقط.`,
+    `قد يرسل العميل عدة رسائل متتالية مدموجة في رسالة واحدة، اقرأها كلها وأجب عن كل أسئلته معًا في ردّ واحد.`,
+    `عند عرض أي عقار لأول مرة اذكر دائمًا في المعلومات الأولية: الموقع، السعر، عدد الغرف (إلزامي)، والمساحة إن وُجدت.`,
+    `عندما يذكر العميل ميزانية أو سعرًا، ابحث عن العقارات ضمن هامش ±25% من هذا الرقم فقط (مثلًا 140 ألف ← من 105 إلى 175 ألف)، ولا تعرض أسعارًا خارج هذا الهامش إلا إذا طلب العميل ذلك صراحةً. إذا قال إن الخيارات لم تناسبه، اقترح خيارات أخرى ضمن نفس الهامش أو اسأله ماذا لم يناسبه، ولا تقفز لأسعار بعيدة.`,
     `قد يرسل العميل رسائل صوتية أو صورًا أو فيديو، افهم محتواها وأجب عنها مباشرة.`,
     isFirst && agent.greeting
       ? `هذه أول رسالة من العميل، ابدأ ردّك بالترحيب التالي مع ذكر اسمك: ${agent.greeting}`
@@ -130,7 +141,7 @@ export async function buildReply(opts: {
           `قواعد إلزامية:`,
           `- ابحث داخل كل هذه السجلات بنفسك قبل أي رد، وطابق طلب العميل (الموقع، السعر، عدد الغرف، النوع...) مع قيم الحقول.`,
           `- ممنوع منعًا باتًا أن تقول إنك لا تملك التفاصيل أو لا تستطيع البحث أو لا تستطيع الوصول للبيانات، فكل السجلات أمامك.`,
-          `- اعرض كل السجلات المطابقة فعلًا لطلب العميل مع تفاصيلها المهمة (الاسم/الموقع/السعر/الغرف/الحالة...). إذا كانت المطابقات كثيرة جدًا (أكثر من 20) اعرض أول 20 مرتبة، ثم أخبره بعددها الكامل واسأله إن أراد بقية القائمة وأرسلها فعلًا عند طلبه.`,
+          `- اعرض أفضل 3 إلى 5 سجلات مطابقة فقط بإيجاز (الموقع/السعر/عدد الغرف)، ثم أخبره بعدد المطابقات الكامل واسأله إن أراد المزيد وأرسلها عند طلبه.`,
           `- إذا لم يوجد أي سجل مطابق تمامًا، قل ذلك بوضوح واقترح أقرب البدائل الموجودة في السجلات.`,
           `- لا تحوّل العميل لموظف بسبب البحث في البيانات، التحويل فقط عند طلبه موظفًا أو عند أمر خارج نطاق البيانات.`,
           `البيانات:`,
