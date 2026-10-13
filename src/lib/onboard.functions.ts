@@ -194,7 +194,7 @@ export const onboardChat = createServerFn({ method: "POST" })
       const digits = (v?: string) => (v ?? "").replace(/\D/g, "");
       if (name === "select_agent") {
         if (!agents?.some((a) => a.id === args["id"])) return { ok: false, error: "معرّف غير صحيح" };
-        agentId = args["id"]!;
+        agentId = args["id"] ?? null;
         return { ok: true };
       }
       if (name === "update_agent") {
@@ -282,6 +282,7 @@ export const onboardChat = createServerFn({ method: "POST" })
           await evo.createInstance(instanceName, agent.whatsapp_number, `${origin}/api/public/evolution/${agent.id}`);
         } catch (e) {
           console.error("createInstance", e);
+          return { ok: false, error: e instanceof Error ? e.message : "تعذّر إنشاء جلسة واتساب", note: "تم حفظ المساعد، لكن جلسة واتساب لم تُنشأ بعد. لا تقل إن الربط جاهز." };
         }
         return { ok: true };
       }
@@ -298,19 +299,13 @@ export const onboardChat = createServerFn({ method: "POST" })
       if (name === "generate_pairing_code") {
         const a = await getAgent();
         const hook = `${origin}/api/public/evolution/${a.id}`;
-        try {
-          await evo.createInstance(a.instance_name, a.whatsapp_number, hook);
-        } catch {
-          try {
-            await evo.setWebhook(a.instance_name, hook);
-          } catch {
-            /* ignore */
-          }
+        const result = await evo.generatePairing(a.instance_name, a.whatsapp_number, hook);
+        connected = result.connected;
+        pairingCode = result.pairingCode;
+        if (connected) {
+          await context.supabase.from("agents").update({ status: "open" }).eq("id", a.id);
+          return { ok: true, state: "open" };
         }
-        const res = (await evo.connectInstance(a.instance_name, a.whatsapp_number)) as Record<string, unknown>;
-        const code = (res["pairingCode"] as string | undefined) ?? null;
-        if (!code) return { ok: false, error: "لم يرجع الخادم كود ربط" };
-        pairingCode = code;
         return { ok: true, note: "الكود ظاهر للمستخدم مع زرين، لا تكتبه" };
       }
       if (name === "check_connection") {
@@ -356,6 +351,11 @@ export const onboardChat = createServerFn({ method: "POST" })
         responses.push({ functionResponse: { name: c.functionCall.name, response: { result } } });
       }
       contents.push({ role: "user", parts: responses });
+      // A valid short-lived code must not be lost if another Gemini call fails.
+      if (pairingCode) {
+        reply = "أدخل الكود في واتساب: الإعدادات ← الأجهزة المرتبطة ← ربط جهاز ← الربط برقم الهاتف. بعد إدخاله اضغط تم الربط.";
+        break;
+      }
     }
 
     return { reply: reply || "حسنًا، لنكمل.", agentId, pairingCode, connected };

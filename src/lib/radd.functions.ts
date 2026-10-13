@@ -185,23 +185,9 @@ export const connectAgent = createServerFn({ method: "POST" })
 
     const evo = await import("./evolution.server");
     const hook = `${origin()}/api/public/evolution/${agent.id}`;
-    try {
-      await evo.createInstance(agent.instance_name, agent.whatsapp_number, hook);
-    } catch {
-      try {
-        await evo.setWebhook(agent.instance_name, hook);
-      } catch {
-        /* ignore */
-      }
-    }
-    const res = (await evo.connectInstance(
-      agent.instance_name,
-      data.pairing ? agent.whatsapp_number : undefined,
-    )) as Record<string, unknown>;
-
-    const base64 = (res["base64"] as string | undefined) ?? undefined;
-    const code = (res["pairingCode"] as string | undefined) ?? undefined;
-    return { qr: base64 ?? null, pairingCode: code ?? null };
+    const result = await evo.generatePairing(agent.instance_name, agent.whatsapp_number, hook, data.pairing ?? true);
+    if (result.connected) await context.supabase.from("agents").update({ status: "open" }).eq("id", agent.id);
+    return result;
   });
 
 export const agentStatus = createServerFn({ method: "POST" })
