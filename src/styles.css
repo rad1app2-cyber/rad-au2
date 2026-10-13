@@ -49,50 +49,49 @@
 
 :root {
   --radius: 1rem;
-  /* Radd brand: dark #0B0B10 + logo gradient (purple/pink/orange/yellow) */
-  --background: #0B0B10;
-  --foreground: #F5F6FA;
-  --card: #14141C;
-  --card-foreground: #F5F6FA;
-  --popover: #14141C;
-  --popover-foreground: #F5F6FA;
-  --primary: #F72585;
-  --primary-foreground: #FFFFFF;
-  --secondary: #1C1C26;
-  --secondary-foreground: #F5F6FA;
-  --muted: #1A1A23;
-  --muted-foreground: #9CA3AF;
-  --accent: #8B00FF;
-  --accent-foreground: #FFFFFF;
-  --destructive: #EF4444;
-  --destructive-foreground: #FFFFFF;
-  --border: #262631;
-  --input: #262631;
-  --ring: #F72585;
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.185 0.012 265);
+  --card: oklch(1 0 0);
+  --card-foreground: var(--foreground);
+  --popover: var(--card);
+  --popover-foreground: var(--foreground);
+  --primary: oklch(0.55 0.225 355);
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.97 0.008 265);
+  --secondary-foreground: var(--foreground);
+  --muted: var(--secondary);
+  --muted-foreground: oklch(0.51 0.023 265);
+  --accent: oklch(0.96 0.018 355);
+  --accent-foreground: var(--primary);
+  --destructive: oklch(0.55 0.22 25);
+  --destructive-foreground: var(--primary-foreground);
+  --border: oklch(0.936 0.008 265);
+  --input: var(--border);
+  --ring: var(--primary);
   --chart-1: #8B00FF;
   --chart-2: #F72585;
   --chart-3: #FF9F43;
   --chart-4: #FFD166;
   --chart-5: #6B7280;
-  --sidebar: #101017;
-  --sidebar-foreground: #F5F6FA;
-  --sidebar-primary: #F72585;
-  --sidebar-primary-foreground: #FFFFFF;
-  --sidebar-accent: #1C1C26;
-  --sidebar-accent-foreground: #F5F6FA;
-  --sidebar-border: #262631;
-  --sidebar-ring: #F72585;
+  --sidebar: var(--secondary);
+  --sidebar-foreground: var(--foreground);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent: var(--accent);
+  --sidebar-accent-foreground: var(--foreground);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--primary);
 
   --gradient-brand: linear-gradient(135deg, #8B00FF, #F72585 40%, #FF9F43 75%, #FFD166);
-  --gradient-glow: radial-gradient(60% 60% at 50% 0%, rgb(139 0 255 / 0.14), transparent 70%);
-  --shadow-soft: 0 10px 40px -12px rgb(0 0 0 / 0.75);
-  --shadow-glow: 0 0 0 1px rgb(247 37 133 / 0.25), 0 18px 60px -18px rgb(139 0 255 / 0.5);
+  --gradient-glow: none;
+  --shadow-soft: 0 10px 40px -12px color-mix(in oklab, var(--foreground) 12%, transparent);
+  --shadow-glow: 0 1px 4px color-mix(in oklab, var(--foreground) 6%, transparent);
   --shadow-logo: 0 0 24px rgb(247 37 133 / 0.48), 0 0 64px rgb(139 0 255 / 0.35);
   --button-glow: 0 0 0 1px rgb(247 37 133 / 0.28), 0 0 18px rgb(247 37 133 / 0.27);
 }
 
 .dark {
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 @layer base {
@@ -101,7 +100,7 @@
   }
 
   html {
-    color-scheme: dark;
+    color-scheme: light;
   }
 
   body {
@@ -115,7 +114,7 @@
 }
 
 @utility brand-gradient {
-  background-image: var(--gradient-brand);
+  background-color: var(--primary);
 }
 
 @utility brand-text {
@@ -136,7 +135,7 @@
 .chat-logo-bloom {
   filter: blur(18px) saturate(140%)
     drop-shadow(0 -30px 60px color-mix(in oklab, var(--primary) 55%, transparent))
-    drop-shadow(0 -10px 30px color-mix(in oklab, var(--accent) 45%, transparent));
+    drop-shadow(0 -10px 30px color-mix(in oklab, var(--chart-1) 35%, transparent));
   mask-image: linear-gradient(to bottom, transparent 0%, black 22%);
   -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 22%);
 }
@@ -153,7 +152,7 @@
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background: var(--gradient-brand);
+   background: var(--primary);
   opacity: 0;
   transition: opacity .35s;
   z-index: -1;
@@ -164,7 +163,7 @@
   inset: 0;
   border-radius: inherit;
   border: 1px solid transparent;
-  background: var(--gradient-brand) border-box;
+   background: var(--primary) border-box;
   -webkit-mask: linear-gradient(var(--foreground) 0 0) padding-box, linear-gradient(var(--foreground) 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;

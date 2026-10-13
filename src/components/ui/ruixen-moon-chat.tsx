@@ -12,7 +12,7 @@ import { Shimmer } from "@/components/ai-elements/shimmer";
 import { ArrowUpIcon, Paperclip, LayoutDashboard, LogOut, Copy, FileText } from "lucide-react";
 import logo from "@/assets/radd-logo.png";
 import { onboardChat } from "@/lib/onboard.functions";
-import { addKnowledge } from "@/lib/radd.functions";
+import { addKnowledge, connectAgent, agentStatus } from "@/lib/radd.functions";
 import { supabase } from "@/integrations/supabase/client";
 
 type Msg = { role: "user" | "assistant"; text: string; code?: string | undefined; file?: string | undefined };
@@ -30,6 +30,8 @@ export default function RuixenMoonChat() {
   const navigate = useNavigate();
   const chat = useServerFn(onboardChat);
   const upload = useServerFn(addKnowledge);
+  const connect = useServerFn(connectAgent);
+  const checkStatus = useServerFn(agentStatus);
   const [messages, setMessages] = useState<Msg[]>([]);
   const [agentId, setAgentId] = useState<string | null>(null);
   const [message, setMessage] = useState("");
@@ -54,6 +56,18 @@ export default function RuixenMoonChat() {
       setMessages(next);
       setBusy(true);
       try {
+        if (agentId && ["إنشاء كود الربط", "انتهت صلاحية الكود", "تم الربط"].includes(text)) {
+          if (text === "تم الربط") {
+            const result = await checkStatus({ data: { id: agentId } });
+            setConnected(result.status === "open");
+            setMessages([...next, { role: "assistant", text: result.status === "open" ? "تم ربط واتساب، مساعدك جاهز." : "الربط لم يكتمل بعد. أدخل الكود في واتساب أو اطلب كودًا جديدًا." }]);
+          } else {
+            const result = await connect({ data: { id: agentId, pairing: true } });
+            setConnected(result.connected);
+            setMessages([...next, { role: "assistant", text: result.connected ? "واتساب مربوط بالفعل، مساعدك جاهز." : "أدخل هذا الكود في واتساب من الأجهزة المرتبطة ← ربط جهاز ← الربط برقم الهاتف.", code: result.pairingCode ?? undefined }]);
+          }
+          return;
+        }
         const res = await chat({
           data: { agentId, messages: next.map((m) => ({ role: m.role, text: m.text })) },
         });
@@ -71,14 +85,15 @@ export default function RuixenMoonChat() {
          setConnected(res.connected);
         setMessages([...next, { role: "assistant", text: res.reply, code: res.pairingCode ?? undefined }]);
       } catch (e) {
-        toast.error(e instanceof Error ? e.message : "حدث خطأ");
-        setMessages(next);
+        const error = e instanceof Error ? e.message : "حدث خطأ";
+        toast.error(error);
+        setMessages([...next, { role: "assistant", text: error }]);
       } finally {
         setBusy(false);
         textareaRef.current?.focus();
       }
     },
-    [agentId, chat, upload],
+    [agentId, chat, upload, connect, checkStatus],
   );
 
   useEffect(() => {
@@ -121,14 +136,12 @@ export default function RuixenMoonChat() {
   return (
     <div className="relative flex h-dvh w-full flex-col items-center overflow-hidden bg-background" dir="rtl">
       <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
-        {/* soft brand-color bloom behind everything, like a sunset behind the flower */}
-        <div className="absolute inset-x-[-20%] bottom-[-35%] h-[85%] rounded-[100%] bg-[radial-gradient(ellipse_at_center,var(--accent)_0%,var(--primary)_35%,transparent_70%)] opacity-30 blur-3xl" />
         {/* only the top of the flower peeks up from the bottom edge, faded and glowing */}
         <div className="absolute inset-x-0 bottom-0 flex justify-center">
           <img
             src={logo}
             alt=""
-            className="chat-logo-bloom h-auto w-[min(190vw,90rem)] max-w-none translate-y-[58%] select-none opacity-40"
+            className="chat-logo-bloom h-auto w-[min(140vw,64rem)] max-w-none translate-y-[58%] select-none opacity-25"
           />
         </div>
         {/* fade the bloom into the background toward the top */}
@@ -214,6 +227,11 @@ export default function RuixenMoonChat() {
        </Conversation>
 
       <div className="relative z-10 w-full max-w-3xl px-4 pb-6">
+        {agentId && !connected && (
+          <div className="mb-3 flex justify-end">
+            <AnimatedGenerateButton disabled={busy} labelIdle="إنشاء كود الربط" onClick={() => send("إنشاء كود الربط", messages)} />
+          </div>
+        )}
          <PromptInput className="rounded-md border border-border bg-card/80 backdrop-blur-md" onSubmit={({ text }) => submit(text)}>
            <PromptInputTextarea
             ref={textareaRef}
