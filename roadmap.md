@@ -11,3 +11,5 @@
 - [x] Send property photos on WhatsApp
 - [x] Larger knowledge files via relevance picking
 - [x] Remember more of each conversation (history 12 → 30)
+- [ ] Repair WhatsApp pairing-code generation and verify the connection flow.
+- [ ] Apply white surfaces, single-color pink buttons, and transparent logos while preserving the chat petal.
