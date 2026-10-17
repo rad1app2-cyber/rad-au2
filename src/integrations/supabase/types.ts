@@ -170,13 +170,16 @@ export type Database = {
           agent_id: string | null
           company: string
           created_at: string
+          current_request: Json
           email: string
           follow_up_at: string | null
           follow_up_note: string
           full_name: string
           id: string
+          last_marketing_at: string | null
           last_message_at: string | null
           lead_status: string
+          marketing_opt_in: boolean
           notes: string
           phone: string
           request_summary: string
@@ -189,13 +192,16 @@ export type Database = {
           agent_id?: string | null
           company?: string
           created_at?: string
+          current_request?: Json
           email?: string
           follow_up_at?: string | null
           follow_up_note?: string
           full_name?: string
           id?: string
+          last_marketing_at?: string | null
           last_message_at?: string | null
           lead_status?: string
+          marketing_opt_in?: boolean
           notes?: string
           phone?: string
           request_summary?: string
@@ -208,13 +214,16 @@ export type Database = {
           agent_id?: string | null
           company?: string
           created_at?: string
+          current_request?: Json
           email?: string
           follow_up_at?: string | null
           follow_up_note?: string
           full_name?: string
           id?: string
+          last_marketing_at?: string | null
           last_message_at?: string | null
           lead_status?: string
+          marketing_opt_in?: boolean
           notes?: string
           phone?: string
           request_summary?: string
@@ -330,6 +339,354 @@ export type Database = {
             columns: ["contact_id"]
             isOneToOne: false
             referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      estate_archives: {
+        Row: {
+          agent_id: string
+          created_at: string
+          finalized: boolean
+          id: string
+          month: string
+          snapshot: Json
+          updated_at: string
+        }
+        Insert: {
+          agent_id: string
+          created_at?: string
+          finalized?: boolean
+          id?: string
+          month: string
+          snapshot?: Json
+          updated_at?: string
+        }
+        Update: {
+          agent_id?: string
+          created_at?: string
+          finalized?: boolean
+          id?: string
+          month?: string
+          snapshot?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estate_archives_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      estate_deliveries: {
+        Row: {
+          agent_id: string
+          created_at: string
+          customer_phone: string
+          error: string | null
+          id: string
+          property_id: string
+          status: string
+        }
+        Insert: {
+          agent_id: string
+          created_at?: string
+          customer_phone: string
+          error?: string | null
+          id?: string
+          property_id: string
+          status?: string
+        }
+        Update: {
+          agent_id?: string
+          created_at?: string
+          customer_phone?: string
+          error?: string | null
+          id?: string
+          property_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estate_deliveries_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "estate_deliveries_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "estate_properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      estate_events: {
+        Row: {
+          agent_id: string
+          created_at: string
+          customer_phone: string
+          id: string
+          kind: string
+          payload: Json
+          property_ref: string | null
+        }
+        Insert: {
+          agent_id: string
+          created_at?: string
+          customer_phone: string
+          id?: string
+          kind: string
+          payload?: Json
+          property_ref?: string | null
+        }
+        Update: {
+          agent_id?: string
+          created_at?: string
+          customer_phone?: string
+          id?: string
+          kind?: string
+          payload?: Json
+          property_ref?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estate_events_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      estate_jobs: {
+        Row: {
+          agent_id: string
+          last_error: string | null
+          last_run_at: string | null
+          lease_until: string | null
+        }
+        Insert: {
+          agent_id: string
+          last_error?: string | null
+          last_run_at?: string | null
+          lease_until?: string | null
+        }
+        Update: {
+          agent_id?: string
+          last_error?: string | null
+          last_run_at?: string | null
+          lease_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estate_jobs_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: true
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      estate_properties: {
+        Row: {
+          agent_id: string
+          area: string
+          category: string
+          changed_at: string
+          currency: string
+          description: string
+          external_id: string
+          first_seen_at: string
+          furnished: boolean | null
+          id: string
+          photos: Json
+          price: number | null
+          raw: Json
+          rooms: number | null
+          seen_at: string
+          source_id: string
+          status: string
+          title: string
+          videos: Json
+        }
+        Insert: {
+          agent_id: string
+          area?: string
+          category?: string
+          changed_at?: string
+          currency?: string
+          description?: string
+          external_id: string
+          first_seen_at?: string
+          furnished?: boolean | null
+          id?: string
+          photos?: Json
+          price?: number | null
+          raw?: Json
+          rooms?: number | null
+          seen_at?: string
+          source_id: string
+          status?: string
+          title?: string
+          videos?: Json
+        }
+        Update: {
+          agent_id?: string
+          area?: string
+          category?: string
+          changed_at?: string
+          currency?: string
+          description?: string
+          external_id?: string
+          first_seen_at?: string
+          furnished?: boolean | null
+          id?: string
+          photos?: Json
+          price?: number | null
+          raw?: Json
+          rooms?: number | null
+          seen_at?: string
+          source_id?: string
+          status?: string
+          title?: string
+          videos?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estate_properties_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "estate_properties_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "estate_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      estate_sources: {
+        Row: {
+          agent_id: string
+          created_at: string
+          cursor_offset: number
+          database_source_id: string | null
+          enabled: boolean
+          endpoint: string | null
+          field_map: Json
+          id: string
+          kind: string
+          label: string
+          last_error: string | null
+          last_synced_at: string | null
+          sync_started_at: string | null
+          user_id: string
+        }
+        Insert: {
+          agent_id: string
+          created_at?: string
+          cursor_offset?: number
+          database_source_id?: string | null
+          enabled?: boolean
+          endpoint?: string | null
+          field_map?: Json
+          id?: string
+          kind?: string
+          label: string
+          last_error?: string | null
+          last_synced_at?: string | null
+          sync_started_at?: string | null
+          user_id: string
+        }
+        Update: {
+          agent_id?: string
+          created_at?: string
+          cursor_offset?: number
+          database_source_id?: string | null
+          enabled?: boolean
+          endpoint?: string | null
+          field_map?: Json
+          id?: string
+          kind?: string
+          label?: string
+          last_error?: string | null
+          last_synced_at?: string | null
+          sync_started_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estate_sources_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "estate_sources_database_source_id_fkey"
+            columns: ["database_source_id"]
+            isOneToOne: false
+            referencedRelation: "data_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      estate_stays: {
+        Row: {
+          agent_id: string
+          created_at: string
+          customer_phone: string
+          ends_at: string
+          id: string
+          notes: string
+          property_id: string
+          starts_at: string
+          status: string
+        }
+        Insert: {
+          agent_id: string
+          created_at?: string
+          customer_phone: string
+          ends_at: string
+          id?: string
+          notes?: string
+          property_id: string
+          starts_at: string
+          status?: string
+        }
+        Update: {
+          agent_id?: string
+          created_at?: string
+          customer_phone?: string
+          ends_at?: string
+          id?: string
+          notes?: string
+          property_id?: string
+          starts_at?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estate_stays_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "estate_stays_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "estate_properties"
             referencedColumns: ["id"]
           },
         ]
@@ -462,7 +819,11 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      estate_acquire_lease: { Args: { p_agent: string }; Returns: boolean }
+      estate_reserve_marketing: {
+        Args: { p_agent: string; p_phone: string; p_property: string }
+        Returns: string
+      }
     }
     Enums: {
       [_ in never]: never
