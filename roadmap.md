@@ -13,3 +13,9 @@
 - [x] Remember more of each conversation (history 12 → 30)
 - [ ] Repair WhatsApp pairing-code generation and verify the connection flow.
 - [ ] Apply white surfaces, single-color pink buttons, and transparent logos while preserving the chat petal.
+- [ ] Monthly Excel archives and downloadable operational reports.
+- [ ] Property platform connection and normalized inventory.
+- [ ] Hotel occupancy with atomic overlap prevention.
+- [ ] Two-hour listing discovery and marketing limited to once per 48 hours.
+- [ ] Request history, rejection reasons, video delivery, conversion and demand-gap reporting.
+- [ ] Expose operations in owner chat and statistics; verify enforceable rules and explain instruction-only behavior.
