@@ -15,6 +15,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedAgentsAgentIdRouteImport } from './routes/_authenticated/agents.$agentId'
 import { Route as ApiPublicMessengerRouteImport } from './routes/api/public/messenger'
+import { Route as ApiPublicCronEstateRouteImport } from './routes/api/public/cron/estate'
 import { Route as ApiPublicCronHourlyRouteImport } from './routes/api/public/cron/hourly'
 import { Route as ApiPublicEvolutionAgentIdRouteImport } from './routes/api/public/evolution/$agentId'
 
@@ -48,6 +49,11 @@ const ApiPublicMessengerRoute = ApiPublicMessengerRouteImport.update({
   path: '/api/public/messenger',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicCronEstateRoute = ApiPublicCronEstateRouteImport.update({
+  id: '/api/public/cron/estate',
+  path: '/api/public/cron/estate',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicCronHourlyRoute = ApiPublicCronHourlyRouteImport.update({
   id: '/api/public/cron/hourly',
   path: '/api/public/cron/hourly',
@@ -66,6 +72,7 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/agents/$agentId': typeof AuthenticatedAgentsAgentIdRoute
   '/api/public/messenger': typeof ApiPublicMessengerRoute
+  '/api/public/cron/estate': typeof ApiPublicCronEstateRoute
   '/api/public/cron/hourly': typeof ApiPublicCronHourlyRoute
   '/api/public/evolution/$agentId': typeof ApiPublicEvolutionAgentIdRoute
 }
@@ -75,6 +82,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/agents/$agentId': typeof AuthenticatedAgentsAgentIdRoute
   '/api/public/messenger': typeof ApiPublicMessengerRoute
+  '/api/public/cron/estate': typeof ApiPublicCronEstateRoute
   '/api/public/cron/hourly': typeof ApiPublicCronHourlyRoute
   '/api/public/evolution/$agentId': typeof ApiPublicEvolutionAgentIdRoute
 }
@@ -86,6 +94,7 @@ export interface FileRoutesById {
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/agents/$agentId': typeof AuthenticatedAgentsAgentIdRoute
   '/api/public/messenger': typeof ApiPublicMessengerRoute
+  '/api/public/cron/estate': typeof ApiPublicCronEstateRoute
   '/api/public/cron/hourly': typeof ApiPublicCronHourlyRoute
   '/api/public/evolution/$agentId': typeof ApiPublicEvolutionAgentIdRoute
 }
@@ -97,6 +106,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/agents/$agentId'
     | '/api/public/messenger'
+    | '/api/public/cron/estate'
     | '/api/public/cron/hourly'
     | '/api/public/evolution/$agentId'
   fileRoutesByTo: FileRoutesByTo
@@ -106,6 +116,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/agents/$agentId'
     | '/api/public/messenger'
+    | '/api/public/cron/estate'
     | '/api/public/cron/hourly'
     | '/api/public/evolution/$agentId'
   id:
@@ -116,6 +127,7 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard'
     | '/_authenticated/agents/$agentId'
     | '/api/public/messenger'
+    | '/api/public/cron/estate'
     | '/api/public/cron/hourly'
     | '/api/public/evolution/$agentId'
   fileRoutesById: FileRoutesById
@@ -125,6 +137,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
   ApiPublicMessengerRoute: typeof ApiPublicMessengerRoute
+  ApiPublicCronEstateRoute: typeof ApiPublicCronEstateRoute
   ApiPublicCronHourlyRoute: typeof ApiPublicCronHourlyRoute
   ApiPublicEvolutionAgentIdRoute: typeof ApiPublicEvolutionAgentIdRoute
 }
@@ -173,6 +186,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicMessengerRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/cron/estate': {
+      id: '/api/public/cron/estate'
+      path: '/api/public/cron/estate'
+      fullPath: '/api/public/cron/estate'
+      preLoaderRoute: typeof ApiPublicCronEstateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/cron/hourly': {
       id: '/api/public/cron/hourly'
       path: '/api/public/cron/hourly'
@@ -208,6 +228,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
   ApiPublicMessengerRoute: ApiPublicMessengerRoute,
+  ApiPublicCronEstateRoute: ApiPublicCronEstateRoute,
   ApiPublicCronHourlyRoute: ApiPublicCronHourlyRoute,
   ApiPublicEvolutionAgentIdRoute: ApiPublicEvolutionAgentIdRoute,
 }

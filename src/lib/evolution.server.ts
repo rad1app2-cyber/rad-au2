@@ -173,3 +173,10 @@ export async function sendImage(instanceName: string, number: string, url: strin
     body: JSON.stringify({ number: number.replace(/\D/g, ""), mediatype: "image", media: url, caption }),
   });
 }
+
+export async function sendVideo(instanceName: string, number: string, url: string, caption = "") {
+  return call(`/message/sendMedia/${encodeURIComponent(instanceName)}`, {
+    method: "POST",
+    body: JSON.stringify({ number: number.replace(/\D/g, ""), mediatype: "video", media: url, caption }),
+  });
+}
