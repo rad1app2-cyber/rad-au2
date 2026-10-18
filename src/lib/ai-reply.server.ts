@@ -276,11 +276,44 @@ export async function buildReply(opts: {
           property_ref: b.property ?? "", scheduled_at: new Date(b.when).toISOString(), notes: b.notes ?? "",
         });
     }
+    // Request tracking: keep the customer's current request (a DB trigger logs its history).
+    const req = reply.match(/\[REQUEST\]\s*(\{.*\})/);
+    if (req) {
+      const r = JSON.parse(req[1]!) as Record<string, unknown>;
+      if (Object.keys(r).length) {
+        if (contact) await supabaseAdmin.from("contacts").update({ current_request: r }).eq("id", contact.id);
+        else if (agent.user_id)
+          await supabaseAdmin.from("contacts").insert({
+            user_id: agent.user_id, agent_id: agent.id, phone, full_name: opts.customerName ?? "",
+            source: opts.channel, current_request: r, lead_status: "new", request_summary: "",
+          });
+      }
+    }
+    const rej = reply.match(/\[REJECT\]\s*(\{.*\})/);
+    if (rej) {
+      const r = JSON.parse(rej[1]!) as { reason?: string };
+      if (r.reason)
+        await supabaseAdmin.from("estate_events").insert({
+          agent_id: agent.id, customer_phone: phone, kind: "rejection", payload: { reason: r.reason },
+        });
+    }
+    // Hotel stay booking: the DB rejects overlapping confirmed stays, so double-booking is impossible.
+    const stay = reply.match(/\[STAY\]\s*(\{.*\})/);
+    if (stay) {
+      const s = JSON.parse(stay[1]!) as { property?: string; start?: string; end?: string };
+      if (s.property && s.start && s.end && !isNaN(Date.parse(s.start)) && !isNaN(Date.parse(s.end))) {
+        const { bookStay } = await import("./estate.server");
+        const booked = await bookStay(agent.id, s.property, phone, new Date(s.start).toISOString(), new Date(s.end).toISOString());
+        if (!booked.ok) stayError = booked.error ?? "تعذّر الحجز";
+      }
+    }
   } catch (e) {
     console.error("bookkeeping failed", e);
   }
   const photos = [...reply.matchAll(/\[PHOTO\]\s*(https?:\/\/\S+)/g)].map((m) => m[1]!).slice(0, 5);
-  reply = reply.replace(/^\s*\[(LEAD|OFFER|BOOK|PHOTO)\].*$/gm, "").trim();
+  const videos = [...reply.matchAll(/\[VIDEO\]\s*(https?:\/\/\S+)/g)].map((m) => m[1]!).slice(0, 3);
+  reply = reply.replace(/^\s*\[(LEAD|OFFER|BOOK|PHOTO|VIDEO|REQUEST|REJECT|STAY)\].*$/gm, "").trim();
+  if (stayError) reply = `${reply}\n${stayError}`.trim();
 
   const handoffMatch = reply.match(/\[HANDOFF\]\s*:?\s*(?:ملخص\s*:)?\s*([\s\S]*)$/i);
   const clientReply = reply.replace(/\[HANDOFF\][\s\S]*$/i, "").trim();
@@ -290,5 +323,6 @@ export async function buildReply(opts: {
     handoffSummary: handoffMatch?.[1]?.trim() ?? "",
     blocked: false,
     photos,
+    videos,
   };
 }
