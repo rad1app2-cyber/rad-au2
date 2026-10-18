@@ -244,9 +244,10 @@ export async function buildReply(opts: {
     ]);
   }
 
-  if (!reply) return { reply: "", handoff: false, handoffSummary: "", blocked, photos: [] };
+  if (!reply) return { reply: "", handoff: false, handoffSummary: "", blocked, photos: [], videos: [] };
 
-  // Hidden bookkeeping lines: customer memory, sent offers, appointments.
+  // Hidden bookkeeping lines: customer memory, request history, sent offers, appointments, hotel stays.
+  let stayError = "";
   try {
     const lead = reply.match(/\[LEAD\]\s*(\{.*\})/);
     if (lead && agent.user_id) {
