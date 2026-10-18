@@ -76,6 +76,12 @@ const TOOLS = [
       { name: "remove_database", description: "فصل قاعدة بيانات بالمعرّف", parameters: { type: "OBJECT", properties: { id: { type: "STRING" } }, required: ["id"] } },
       { name: "select_agent", description: "اختيار المساعد الذي تُطبَّق عليه الأوامر", parameters: { type: "OBJECT", properties: { id: { type: "STRING" } }, required: ["id"] } },
       { name: "check_connection", description: "فحص حالة ربط واتساب", parameters: { type: "OBJECT", properties: {} } },
+      { name: "connect_estate_platform", description: "ربط منصة العقارات: إما عبر قاعدة بيانات مربوطة مسبقًا (database_id من list_databases) أو عبر رابط API عام يعيد JSON", parameters: { type: "OBJECT", properties: { database_id: { type: "STRING" }, api_url: { type: "STRING" }, label: { type: "STRING" } } } },
+      { name: "sync_estate_now", description: "مزامنة عقارات المنصة فورًا وعرض عدد الجديد والمتغيّر", parameters: { type: "OBJECT", properties: {} } },
+      { name: "list_estate_properties", description: "عرض أحدث العقارات المتزامنة من المنصة", parameters: { type: "OBJECT", properties: {} } },
+      { name: "estate_report", description: "تقرير التحويل وفجوة الطلب وأسباب الرفض والتسويق", parameters: { type: "OBJECT", properties: {} } },
+      { name: "estate_archive", description: "إنشاء أرشيف Excel لشهر محدد بصيغة YYYY-MM وإرجاع رابط تنزيله", parameters: { type: "OBJECT", properties: { month: { type: "STRING", description: "YYYY-MM" } }, required: ["month"] } },
+      { name: "list_occupancy", description: "عرض الإشغالات الفندقية القادمة والحالية", parameters: { type: "OBJECT", properties: {} } },
     ],
   },
 ];
