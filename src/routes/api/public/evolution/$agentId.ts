@@ -164,6 +164,13 @@ export const Route = createFileRoute("/api/public/evolution/$agentId")({
             console.error("photo send failed", url, e);
           }
         }
+        for (const url of result.videos) {
+          try {
+            await evo.sendVideo(agent.instance_name, clientNumber, url);
+          } catch (e) {
+            console.error("video send failed", url, e);
+          }
+        }
 
         // Notify the human employee privately with the client's details and a summary.
         if (result.handoff && agent.employee_number) {
