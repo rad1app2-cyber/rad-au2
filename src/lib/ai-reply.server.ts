@@ -1,3 +1,4 @@
+import type { Json } from "@/integrations/supabase/types";
 // Shared brain for every channel (WhatsApp, Messenger): builds the prompt from the
 // agent's persona, files and connected databases, then asks Gemini for a reply.
 
@@ -281,11 +282,11 @@ export async function buildReply(opts: {
     if (req) {
       const r = JSON.parse(req[1]!) as Record<string, unknown>;
       if (Object.keys(r).length) {
-        if (contact) await supabaseAdmin.from("contacts").update({ current_request: r }).eq("id", contact.id);
+        if (contact) await supabaseAdmin.from("contacts").update({ current_request: r as Json }).eq("id", contact.id);
         else if (agent.user_id)
           await supabaseAdmin.from("contacts").insert({
             user_id: agent.user_id, agent_id: agent.id, phone, full_name: opts.customerName ?? "",
-            source: opts.channel, current_request: r, lead_status: "new", request_summary: "",
+            source: opts.channel, current_request: r as Json, lead_status: "new", request_summary: "",
           });
       }
     }

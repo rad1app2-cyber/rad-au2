@@ -1,3 +1,4 @@
+import type { Json } from "@/integrations/supabase/types";
 // Estate operations: syncs listings from the client's property platform (via its database
 // connection), detects new/changed properties, matches them to customer requests for
 // marketing (48h software-enforced limit), books hotel stays without overlap, builds
@@ -27,7 +28,7 @@ type Normalized = {
   photos: string[];
   videos: string[];
   status: string;
-  raw: Record<string, unknown>;
+  raw: Json;
 };
 
 const pick = (row: Record<string, unknown>, keys: string[]): unknown => {
@@ -75,7 +76,7 @@ export function normalizeRow(row: Record<string, unknown>, map: Record<string, s
     photos: mediaUrls.filter((u) => !/\.(mp4|mov|webm)(\?|$)/i.test(u)),
     videos: mediaUrls.filter((u) => /\.(mp4|mov|webm)(\?|$)/i.test(u)).concat(asUrls(g("videos", ["videos", "video_urls", "video"]))),
     status: String(g("status", ["status", "state", "availability"]) ?? "active"),
-    raw: row,
+    raw: row as Json,
   };
 }
 
@@ -141,6 +142,7 @@ export async function syncEstate(agentId: string) {
             stats.added++;
             await supabaseAdmin.from("estate_events").insert({
               agent_id: agentId,
+              customer_phone: "",
               kind: "property_new",
               property_ref: n.title,
               payload: { external_id: n.external_id, price: n.price, area: n.area, rooms: n.rooms },
@@ -156,6 +158,7 @@ export async function syncEstate(agentId: string) {
             stats.changed++;
             await supabaseAdmin.from("estate_events").insert({
               agent_id: agentId,
+              customer_phone: "",
               kind: n.status !== existing.status && /sold|مباع|مؤجر|rented/i.test(n.status) ? "property_sold" : "property_changed",
               property_ref: n.title,
               payload: { external_id: n.external_id, old_price: existing.price, new_price: n.price, old_status: existing.status, new_status: n.status },
@@ -164,7 +167,7 @@ export async function syncEstate(agentId: string) {
         }
         stats.synced++;
       }
-      await supabaseAdmin.from("estate_sources").update({ last_sync_at: now, last_error: null }).eq("id", s.id);
+      await supabaseAdmin.from("estate_sources").update({ last_synced_at: now, last_error: null }).eq("id", s.id);
     } catch (e) {
       stats.errors++;
       await supabaseAdmin
