@@ -38,13 +38,15 @@ async function call(path: string, init?: RequestInit) {
     if (res.status === 404 && /application not found/i.test(text)) {
       throw new EvolutionError("عنوان خادم واتساب الحالي لا يشير إلى تطبيق يعمل. حدّث EVOLUTION_API_URL بعنوان خادم Evolution المشغّل ثم حاول مجددًا.", res.status);
     }
-    if (res.status === 401 || res.status === 403) {
+    // Evolution returns 403 for business errors too (e.g. "name already in use"), so only
+    // treat it as a bad key when there's no specific message.
+    const b = body as { message?: unknown; error?: unknown; response?: { message?: unknown } } | null;
+    const detailRaw = b?.response?.message ?? b?.message;
+    const detail = Array.isArray(detailRaw) ? detailRaw.join(" ") : typeof detailRaw === "string" ? detailRaw : "";
+    if (res.status === 401 || (res.status === 403 && !detail)) {
       throw new EvolutionError("خادم واتساب رفض مفتاح الاتصال. حدّث مفتاح Evolution ثم حاول مجددًا.", res.status);
     }
-    const msg =
-      (body as { message?: string; error?: string } | null)?.message ??
-      (body as { error?: string } | null)?.error ??
-      `فشل الاتصال بخادم واتساب (${res.status})`;
+    const msg = detail || (typeof b?.error === "string" ? b.error : "") || `فشل الاتصال بخادم واتساب (${res.status})`;
     throw new EvolutionError(typeof msg === "string" ? msg : JSON.stringify(msg), res.status);
   }
   return body as Record<string, unknown>;
