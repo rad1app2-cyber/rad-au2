@@ -208,7 +208,7 @@ export async function buildReply(opts: {
               body: JSON.stringify({
                 system_instruction: { parts: [{ text: system }] },
                 contents: [...historyContents, { role: "user", parts }],
-                generationConfig: { temperature: 0.6, maxOutputTokens: 4096 },
+                generationConfig: { temperature: 0.5, maxOutputTokens: 4096, thinkingConfig: { thinkingBudget: 512 } },
               }),
             },
           );

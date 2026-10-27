@@ -31,6 +31,7 @@ const SYSTEM = `أنت "ردّ"، مساعد إعداد ذكي داخل تطبي
 - عرض ملفات المعرفة أو حذف ملف → list_knowledge / delete_knowledge.
 - ربط قاعدة بيانات Supabase ليقرأ المساعد بياناتها الحية: اطلب من المستخدم خطوة بخطوة رابط المشروع (Project URL) ثم مفتاح anon/publishable (من إعدادات المشروع > API)، واختياريًا أسماء الجداول، ثم استدعِ connect_database. إن فشل اشرح السبب بوضوح (مثلًا الحاجة لسياسة قراءة عامة أو كتابة أسماء الجداول). لعرضها أو فصلها → list_databases / remove_database.
 - إذا كان للمستخدم أكثر من مساعد ولم يحدد، اسأله أيّها (باستخدام select_agent بالمعرّف).
+إذا طلب المستخدم أي سلوك للمساعد لا توجد له أداة مخصصة، نفّذه فورًا عبر add_rule بصياغة واضحة ثم أكّد له. لا تقل إنك نفّذت شيئًا قبل أن تنجح الأداة فعلًا، وأجب باختصار ودقة.
 لا تنفّذ طلبات خارج نطاق التطبيق؛ اعتذر بلطف.`;
 
 const TOOLS = [
@@ -94,7 +95,7 @@ async function callGemini(contents: Content[]) {
   if (!apiKey) throw new Error("مفتاح Gemini غير مضبوط");
   let lastErr = "";
   // Free-tier Gemini is often briefly busy (429/503): cycle through models, then wait and retry.
-  const waits = [0, 2000, 5000, 10000];
+  const waits = [0, 1500, 4000];
   for (const wait of waits) {
     if (wait) await new Promise((r) => setTimeout(r, wait));
     for (const model of MODELS) {
@@ -109,7 +110,7 @@ async function callGemini(contents: Content[]) {
               system_instruction: { parts: [{ text: SYSTEM }] },
               contents,
               tools: TOOLS,
-              generationConfig: { temperature: 0.5 },
+              generationConfig: { temperature: 0.4, thinkingConfig: { thinkingBudget: 512 } },
             }),
           },
         );

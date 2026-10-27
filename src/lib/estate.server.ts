@@ -201,7 +201,7 @@ export async function marketNewProperties(agentId: string) {
   const evo = await import("./evolution.server");
   const { data: agent } = await supabaseAdmin
     .from("agents")
-    .select("id, ai_name, instance_name")
+    .select("id, ai_name, instance_name, whatsapp_number")
     .eq("id", agentId)
     .maybeSingle();
   if (!agent) return { sent: 0 };
@@ -216,9 +216,8 @@ export async function marketNewProperties(agentId: string) {
       .eq("status", "active"),
     supabaseAdmin
       .from("contacts")
-      .select("id, phone, full_name, current_request")
+      .select("id, phone, full_name, current_request, request_summary, marketing_opt_in")
       .eq("agent_id", agentId)
-      .eq("marketing_opt_in", true)
       .not("current_request", "is", null)
       .neq("lead_status", "closed"),
   ]);
@@ -228,6 +227,32 @@ export async function marketNewProperties(agentId: string) {
     for (const c of contacts ?? []) {
       const req = (c.current_request ?? {}) as Record<string, unknown>;
       if (!matches(req, p)) continue;
+      // Alert the business's own WhatsApp number once per customer/property match.
+      const { data: seen } = await supabaseAdmin
+        .from("estate_events")
+        .select("id")
+        .eq("agent_id", agentId)
+        .eq("customer_phone", c.phone)
+        .eq("kind", "owner_alert")
+        .eq("property_ref", p.id)
+        .limit(1);
+      if (!seen?.length && agent.whatsapp_number) {
+        const want = c.request_summary || Object.entries(req).map(([k, v]) => `${k}: ${v}`).join("، ");
+        const alert = [
+          "🔔 توفّر عقار يطابق طلبًا سابقًا لزبون",
+          `اسم الزبون: ${c.full_name || "غير معروف"}`,
+          `رقم الزبون: +${String(c.phone).replace(/\D/g, "")}`,
+          `طلب الزبون: ${want}`,
+          `العقار: ${p.title}${p.area ? ` — ${p.area}` : ""}${p.price ? ` — ${p.price} ${p.currency ?? ""}` : ""}${p.rooms ? ` — ${p.rooms} غرف` : ""}`,
+        ].join("\n");
+        try {
+          await evo.sendText(agent.instance_name, agent.whatsapp_number, alert);
+          await supabaseAdmin.from("estate_events").insert({ agent_id: agentId, customer_phone: c.phone, kind: "owner_alert", property_ref: p.id, payload: {} });
+        } catch (e) {
+          console.error("owner alert failed", e);
+        }
+      }
+      if (!c.marketing_opt_in) continue;
       try {
         // Software-enforced: throws if this customer got marketing within 48h.
         await supabaseAdmin.rpc("estate_reserve_marketing", {
