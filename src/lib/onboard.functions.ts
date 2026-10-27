@@ -94,7 +94,7 @@ async function callGemini(contents: Content[]) {
   if (!apiKey) throw new Error("مفتاح Gemini غير مضبوط");
   let lastErr = "";
   // Free-tier Gemini is often briefly busy (429/503): cycle through models, then wait and retry.
-  const waits = [0, 2000, 5000, 10000];
+  const waits = [0, 1500, 4000];
   for (const wait of waits) {
     if (wait) await new Promise((r) => setTimeout(r, wait));
     for (const model of MODELS) {
@@ -109,7 +109,7 @@ async function callGemini(contents: Content[]) {
               system_instruction: { parts: [{ text: SYSTEM }] },
               contents,
               tools: TOOLS,
-              generationConfig: { temperature: 0.5 },
+              generationConfig: { temperature: 0.4, thinkingConfig: { thinkingBudget: 512 } },
             }),
           },
         );
