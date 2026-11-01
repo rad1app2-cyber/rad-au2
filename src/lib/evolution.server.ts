@@ -98,23 +98,48 @@ function pairingValue(payload: unknown, field: "pairingCode" | "base64"): string
   return null;
 }
 
+const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/**
+ * Always starts a brand-new WhatsApp session so the code is fresh and live.
+ * Evolution caches the last pairing code and keeps returning it even after the
+ * socket has closed, which produces codes that WhatsApp rejects.
+ */
 export async function generatePairing(instanceName: string, number: string, webhookUrl: string, pairing = true) {
-  if (!/^[1-9]\d{7,14}$/.test(number.replace(/\D/g, ""))) throw new Error("أدخل رقم واتساب كاملًا مع رمز الدولة");
-  const created = await prepareInstance(instanceName, number, webhookUrl);
-  const state = await instanceState(instanceName);
-  const instance = state["instance"] as { state?: string } | undefined;
-  if ((instance?.state ?? state["state"]) === "open") return { pairingCode: null, qr: null, connected: true };
-  let payload = created;
-  for (let attempt = 0; attempt < 5; attempt++) {
-    if (attempt > 0) await new Promise((resolve) => setTimeout(resolve, 1500));
-    if (attempt === 0 || !pairingValue(payload, pairing ? "pairingCode" : "base64")) {
-      payload = await connectInstance(instanceName, pairing ? number : undefined);
+  const digits = number.replace(/\D/g, "");
+  if (!/^[1-9]\d{7,14}$/.test(digits)) throw new Error("أدخل رقم واتساب كاملًا مع رمز الدولة");
+
+  try {
+    const state = await instanceState(instanceName);
+    const instance = state["instance"] as { state?: string } | undefined;
+    if ((instance?.state ?? state["state"]) === "open") return { pairingCode: null, qr: null, connected: true };
+  } catch {
+    /* instance does not exist yet */
+  }
+
+  await deleteInstance(instanceName);
+
+  let created: Record<string, unknown> | null = null;
+  for (let attempt = 0; attempt < 6; attempt++) {
+    await wait(attempt === 0 ? 1200 : 2000);
+    try {
+      created = await createInstance(instanceName, digits, webhookUrl);
+      break;
+    } catch (error) {
+      const inUse = error instanceof EvolutionError && [403, 409].includes(error.status) && /already|exist|use|موجود/i.test(error.message);
+      if (!inUse || attempt === 5) throw error;
     }
+  }
+
+  let payload: unknown = created;
+  for (let attempt = 0; attempt < 6; attempt++) {
     const code = pairingValue(payload, "pairingCode");
     const qr = pairingValue(payload, "base64");
     if (pairing ? code : qr) return { pairingCode: code, qr, connected: false };
+    await wait(1500);
+    payload = await connectInstance(instanceName, pairing ? digits : undefined);
   }
-  throw new Error("خادم واتساب لم يُرجع كودًا بعد الانتظار. تأكد من تشغيل جلسة واتساب ثم أعد المحاولة.");
+  throw new Error("خادم واتساب لم يُرجع كودًا بعد الانتظار. أعد المحاولة بعد لحظات.");
 }
 
 export async function instanceState(instanceName: string) {
