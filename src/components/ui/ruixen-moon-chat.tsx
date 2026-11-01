@@ -12,7 +12,7 @@ import { Shimmer } from "@/components/ai-elements/shimmer";
 import { ArrowUpIcon, Paperclip, LayoutDashboard, LogOut, Copy, FileText } from "lucide-react";
 import logo from "@/assets/radd-logo.png";
 import { onboardChat } from "@/lib/onboard.functions";
-import { addKnowledge, connectAgent, agentStatus } from "@/lib/radd.functions";
+import { addKnowledge, connectAgent, agentStatus, livePairingCode } from "@/lib/radd.functions";
 import { supabase } from "@/integrations/supabase/client";
 
 type Msg = { role: "user" | "assistant"; text: string; code?: string | undefined; file?: string | undefined };
@@ -32,6 +32,7 @@ export default function RuixenMoonChat() {
   const upload = useServerFn(addKnowledge);
   const connect = useServerFn(connectAgent);
   const checkStatus = useServerFn(agentStatus);
+  const live = useServerFn(livePairingCode);
   const [messages, setMessages] = useState<Msg[]>([]);
   const [agentId, setAgentId] = useState<string | null>(null);
   const [message, setMessage] = useState("");
@@ -132,6 +133,39 @@ export default function RuixenMoonChat() {
   }
 
   const lastCodeIdx = messages.map((m) => !!m.code).lastIndexOf(true);
+  const [codeExpired, setCodeExpired] = useState(false);
+
+  // The WhatsApp server swaps the code every ~40 seconds; keep the visible one current.
+  useEffect(() => {
+    if (!agentId || connected || lastCodeIdx < 0 || busy) return;
+    setCodeExpired(false);
+    let stop = false;
+    const tick = async () => {
+      try {
+        const r = await live({ data: { id: agentId } });
+        if (stop) return;
+        if (r.state === "open") {
+          setConnected(true);
+          setMessages((prev) => [...prev, { role: "assistant", text: "تم ربط واتساب بنجاح 🎉 مساعدك جاهز ويرد على الزبائن الآن." }]);
+          return;
+        }
+        if (r.state === "connecting" && r.pairingCode) {
+          setMessages((prev) => prev.map((m, idx) => (idx === lastCodeIdx && m.code !== r.pairingCode ? { ...m, code: r.pairingCode ?? m.code } : m)));
+        } else if (r.state !== "connecting") {
+          setCodeExpired(true);
+          return;
+        }
+      } catch {
+        /* keep trying */
+      }
+      if (!stop) timer = setTimeout(tick, 4000);
+    };
+    let timer = setTimeout(tick, 4000);
+    return () => {
+      stop = true;
+      clearTimeout(timer);
+    };
+  }, [agentId, connected, lastCodeIdx, busy, live]);
 
   return (
     <div className="relative flex h-dvh w-full flex-col items-center overflow-hidden bg-background" dir="rtl">

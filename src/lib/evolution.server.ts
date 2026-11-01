@@ -146,6 +146,26 @@ export async function instanceState(instanceName: string) {
   return call(`/instance/connectionState/${encodeURIComponent(instanceName)}`, { method: "GET" });
 }
 
+/**
+ * Reads the code that is valid right now without starting a new session.
+ * Evolution silently requests a new pairing code every ~40s (each QR refresh),
+ * which invalidates the previous one — so the UI must keep showing the latest.
+ */
+export async function livePairing(instanceName: string) {
+  let state = "close";
+  try {
+    const res = await instanceState(instanceName);
+    const instance = res["instance"] as { state?: string } | undefined;
+    state = String(instance?.state ?? res["state"] ?? "close");
+  } catch {
+    return { state: "close", pairingCode: null as string | null };
+  }
+  if (state !== "connecting") return { state, pairingCode: null as string | null };
+  // No number here: passing it would ask WhatsApp for yet another code.
+  const payload = await connectInstance(instanceName);
+  return { state, pairingCode: pairingValue(payload, "pairingCode") };
+}
+
 export async function logoutInstance(instanceName: string) {
   return call(`/instance/logout/${encodeURIComponent(instanceName)}`, { method: "DELETE" });
 }
