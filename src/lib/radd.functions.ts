@@ -190,6 +190,22 @@ export const connectAgent = createServerFn({ method: "POST" })
     return result;
   });
 
+export const livePairingCode = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { id: string }) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { data: agent } = await context.supabase
+      .from("agents")
+      .select("id, instance_name")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (!agent) throw new Error("لم يتم العثور على المساعد");
+    const evo = await import("./evolution.server");
+    const result = await evo.livePairing(agent.instance_name);
+    if (result.state === "open") await context.supabase.from("agents").update({ status: "open" }).eq("id", agent.id);
+    return result;
+  });
+
 export const agentStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { id: string }) => z.object({ id: z.string().uuid() }).parse(d))
