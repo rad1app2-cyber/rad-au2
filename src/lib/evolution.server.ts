@@ -64,7 +64,7 @@ export async function createInstance(instanceName: string, number: string, webho
         url: webhookUrl,
         byEvents: false,
         base64: false,
-        events: ["MESSAGES_UPSERT"],
+        events: ["MESSAGES_UPSERT", "CONNECTION_UPDATE"],
       },
     }),
   });
@@ -158,12 +158,12 @@ export async function livePairing(instanceName: string) {
     const instance = res["instance"] as { state?: string } | undefined;
     state = String(instance?.state ?? res["state"] ?? "close");
   } catch {
-    return { state: "close", pairingCode: null as string | null };
+    return { state: "close", pairingCode: null as string | null, qr: null as string | null };
   }
-  if (state !== "connecting") return { state, pairingCode: null as string | null };
+  if (state !== "connecting") return { state, pairingCode: null as string | null, qr: null as string | null };
   // No number here: passing it would ask WhatsApp for yet another code.
   const payload = await connectInstance(instanceName);
-  return { state, pairingCode: pairingValue(payload, "pairingCode") };
+  return { state, pairingCode: pairingValue(payload, "pairingCode"), qr: pairingValue(payload, "base64") };
 }
 
 export async function logoutInstance(instanceName: string) {
@@ -192,7 +192,7 @@ export async function setWebhook(instanceName: string, webhookUrl: string) {
         url: webhookUrl,
         byEvents: false,
         base64: false,
-        events: ["MESSAGES_UPSERT"],
+        events: ["MESSAGES_UPSERT", "CONNECTION_UPDATE"],
       },
     }),
   });
