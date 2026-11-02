@@ -15,7 +15,7 @@ import { onboardChat } from "@/lib/onboard.functions";
 import { addKnowledge, connectAgent, agentStatus, livePairingCode } from "@/lib/radd.functions";
 import { supabase } from "@/integrations/supabase/client";
 
-type Msg = { role: "user" | "assistant"; text: string; code?: string | undefined; file?: string | undefined };
+type Msg = { role: "user" | "assistant"; text: string; code?: string | undefined; qr?: string | undefined; file?: string | undefined };
 
 function toBase64(file: File) {
   return new Promise<string>((resolve, reject) => {
@@ -57,15 +57,23 @@ export default function RuixenMoonChat() {
       setMessages(next);
       setBusy(true);
       try {
-        if (agentId && ["إنشاء كود الربط", "انتهت صلاحية الكود", "تم الربط"].includes(text)) {
+        if (agentId && ["إنشاء كود الربط", "انتهت صلاحية الكود", "تم الربط", "الربط بمسح QR"].includes(text)) {
           if (text === "تم الربط") {
             const result = await checkStatus({ data: { id: agentId } });
             setConnected(result.status === "open");
             setMessages([...next, { role: "assistant", text: result.status === "open" ? "تم ربط واتساب، مساعدك جاهز." : "الربط لم يكتمل بعد. أدخل الكود في واتساب أو اطلب كودًا جديدًا." }]);
           } else {
-            const result = await connect({ data: { id: agentId, pairing: true } });
+            const useQr = text === "الربط بمسح QR";
+            const result = await connect({ data: { id: agentId, pairing: !useQr } });
             setConnected(result.connected);
-            setMessages([...next, { role: "assistant", text: result.connected ? "واتساب مربوط بالفعل، مساعدك جاهز." : "أدخل هذا الكود في واتساب من الأجهزة المرتبطة ← ربط جهاز ← الربط برقم الهاتف.", code: result.pairingCode ?? undefined }]);
+            setMessages([
+              ...next,
+              result.connected
+                ? { role: "assistant", text: "واتساب مربوط بالفعل، مساعدك جاهز." }
+                : useQr
+                  ? { role: "assistant", text: "افتح واتساب على هاتفك ← الأجهزة المرتبطة ← ربط جهاز، ثم امسح هذا الرمز. الرمز يتجدد تلقائيًا.", qr: result.qr ?? undefined }
+                  : { role: "assistant", text: "أدخل هذا الكود فورًا في واتساب: الأجهزة المرتبطة ← ربط جهاز ← الربط برقم الهاتف بدلًا من ذلك. الكود يتجدد تلقائيًا كل نصف دقيقة تقريبًا، استخدم الظاهر الآن.", code: result.pairingCode ?? undefined },
+            ]);
           }
           return;
         }
@@ -132,7 +140,7 @@ export default function RuixenMoonChat() {
     }
   }
 
-  const lastCodeIdx = messages.map((m) => !!m.code).lastIndexOf(true);
+  const lastCodeIdx = messages.map((m) => !!(m.code || m.qr)).lastIndexOf(true);
   const [codeExpired, setCodeExpired] = useState(false);
 
   // The WhatsApp server swaps the code every ~40 seconds; keep the visible one current.
@@ -149,8 +157,15 @@ export default function RuixenMoonChat() {
           setMessages((prev) => [...prev, { role: "assistant", text: "تم ربط واتساب بنجاح 🎉 مساعدك جاهز ويرد على الزبائن الآن." }]);
           return;
         }
-        if (r.state === "connecting" && r.pairingCode) {
-          setMessages((prev) => prev.map((m, idx) => (idx === lastCodeIdx && m.code !== r.pairingCode ? { ...m, code: r.pairingCode ?? m.code } : m)));
+        if (r.state === "connecting" && (r.pairingCode || r.qr)) {
+          setMessages((prev) =>
+            prev.map((m, idx) => {
+              if (idx !== lastCodeIdx) return m;
+              if (m.qr && r.qr && m.qr !== r.qr) return { ...m, qr: r.qr };
+              if (m.code && r.pairingCode && m.code !== r.pairingCode) return { ...m, code: r.pairingCode };
+              return m;
+            }),
+          );
         } else if (r.state !== "connecting") {
           setCodeExpired(true);
           return;
@@ -224,8 +239,16 @@ export default function RuixenMoonChat() {
                 </div>
               )}
                <MessageResponse className="[&_ol]:pr-5 [&_ul]:pr-5">{m.text}</MessageResponse>
-              {m.code && (
+              {(m.code || m.qr) && (
                 <div className="mt-3 space-y-3">
+                  {m.qr && (
+                    <img
+                      src={m.qr.startsWith("data:") ? m.qr : `data:image/png;base64,${m.qr}`}
+                      alt="رمز QR لربط واتساب"
+                      className="mx-auto w-64 max-w-full rounded-md border border-border bg-card p-2"
+                    />
+                  )}
+                  {m.code && (
                    <Button
                     type="button"
                     onClick={() => {
@@ -237,6 +260,10 @@ export default function RuixenMoonChat() {
                   >
                     {m.code} <Copy className="h-4 w-4" />
                    </Button>
+                  )}
+                  {i === lastCodeIdx && !connected && codeExpired && (
+                    <p className="text-xs text-muted-foreground">توقف الخادم عن تجديد الرمز. اطلب رمزًا جديدًا.</p>
+                  )}
                   {i === lastCodeIdx && !connected && (
                     <div className="flex flex-wrap gap-2">
                       <AnimatedGenerateButton disabled={busy} labelIdle="تم الربط" onClick={() => send("تم الربط", messages)} />
@@ -246,6 +273,9 @@ export default function RuixenMoonChat() {
                          labelIdle="انتهت صلاحية الكود"
                         onClick={() => send("انتهت صلاحية الكود", messages)}
                       />
+                      {!m.qr && (
+                        <AnimatedGenerateButton disabled={busy} variant="outline" labelIdle="الربط بمسح QR" onClick={() => send("الربط بمسح QR", messages)} />
+                      )}
                     </div>
                   )}
                 </div>
@@ -262,8 +292,9 @@ export default function RuixenMoonChat() {
 
       <div className="relative z-10 w-full max-w-3xl px-4 pb-6">
         {agentId && !connected && (
-          <div className="mb-3 flex justify-end">
+          <div className="mb-3 flex flex-wrap justify-end gap-2">
             <AnimatedGenerateButton disabled={busy} labelIdle="إنشاء كود الربط" onClick={() => send("إنشاء كود الربط", messages)} />
+            <AnimatedGenerateButton disabled={busy} variant="outline" labelIdle="الربط بمسح QR" onClick={() => send("الربط بمسح QR", messages)} />
           </div>
         )}
          <PromptInput className="rounded-md border border-border bg-card/80 backdrop-blur-md" onSubmit={({ text }) => submit(text)}>
