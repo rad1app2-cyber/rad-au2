@@ -49,10 +49,15 @@ export const Route = createFileRoute("/api/public/evolution/$agentId")({
         const event = (payload.event ?? "").toLowerCase().replace(/_/g, ".");
         if (event.includes("connection.update")) {
           // Keep the saved link status truthful when WhatsApp links or drops the device.
-          const state = String((payload.data as { state?: unknown } | undefined)?.state ?? "");
-          if (["open", "close", "connecting"].includes(state) && /^[0-9a-f-]{36}$/i.test(params.agentId)) {
+          // The payload is untrusted, so read the real state from the WhatsApp server.
+          if (/^[0-9a-f-]{36}$/i.test(params.agentId)) {
             const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-            await supabaseAdmin.from("agents").update({ status: state }).eq("id", params.agentId);
+            const { data: a } = await supabaseAdmin.from("agents").select("instance_name").eq("id", params.agentId).maybeSingle();
+            if (a) {
+              const evo = await import("@/lib/evolution.server");
+              const { state } = await evo.livePairingState(a.instance_name);
+              await supabaseAdmin.from("agents").update({ status: state }).eq("id", params.agentId);
+            }
           }
           return new Response("ok");
         }

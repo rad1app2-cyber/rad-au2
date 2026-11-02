@@ -166,6 +166,16 @@ export async function livePairing(instanceName: string) {
   return { state, pairingCode: pairingValue(payload, "pairingCode"), qr: pairingValue(payload, "base64") };
 }
 
+export async function livePairingState(instanceName: string) {
+  try {
+    const res = await instanceState(instanceName);
+    const instance = res["instance"] as { state?: string } | undefined;
+    return { state: String(instance?.state ?? res["state"] ?? "close") };
+  } catch {
+    return { state: "close" };
+  }
+}
+
 export async function logoutInstance(instanceName: string) {
   return call(`/instance/logout/${encodeURIComponent(instanceName)}`, { method: "DELETE" });
 }
