@@ -47,6 +47,15 @@ export const Route = createFileRoute("/api/public/evolution/$agentId")({
       POST: async ({ request, params }) => {
         const payload = (await request.json().catch(() => ({}))) as EvoPayload;
         const event = (payload.event ?? "").toLowerCase().replace(/_/g, ".");
+        if (event.includes("connection.update")) {
+          // Keep the saved link status truthful when WhatsApp links or drops the device.
+          const state = String((payload.data as { state?: unknown } | undefined)?.state ?? "");
+          if (["open", "close", "connecting"].includes(state) && /^[0-9a-f-]{36}$/i.test(params.agentId)) {
+            const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+            await supabaseAdmin.from("agents").update({ status: state }).eq("id", params.agentId);
+          }
+          return new Response("ok");
+        }
         if (event && !event.includes("messages.upsert")) {
           return new Response("ignored");
         }
