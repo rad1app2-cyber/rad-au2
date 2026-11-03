@@ -91,13 +91,17 @@ type Part = Record<string, unknown>;
 type Content = { role: string; parts: Part[] };
 
 async function callGemini(contents: Content[]) {
-  const apiKey = process.env["GEMINI_API_KEY"];
-  if (!apiKey) throw new Error("مفتاح Gemini غير مضبوط");
+  const { geminiKeys } = await import("./gemini-keys.server");
+  const keys = geminiKeys();
+  if (!keys.length) throw new Error("مفتاح Gemini غير مضبوط");
   let lastErr = "";
-  // Free-tier Gemini is often briefly busy (429/503): cycle through models, then wait and retry.
+  const badKeys = new Set<string>();
+  // Free-tier Gemini is often briefly busy (429/503): cycle keys and models, then wait and retry.
   const waits = [0, 1500, 4000];
   for (const wait of waits) {
     if (wait) await new Promise((r) => setTimeout(r, wait));
+    for (const apiKey of keys) {
+    if (badKeys.has(apiKey)) continue;
     for (const model of MODELS) {
       let res: Response;
       try {
@@ -106,6 +110,7 @@ async function callGemini(contents: Content[]) {
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
+            signal: AbortSignal.timeout(20000),
             body: JSON.stringify({
               system_instruction: { parts: [{ text: SYSTEM }] },
               contents,
@@ -121,7 +126,10 @@ async function callGemini(contents: Content[]) {
       if (!res.ok) {
         lastErr = `${res.status} ${(await res.text()).slice(0, 300)}`;
         console.error("Gemini error", model, lastErr);
-        if (res.status === 401 || res.status === 403) throw new Error("مفتاح Gemini غير صالح");
+        if (res.status === 401 || res.status === 403) {
+          badKeys.add(apiKey);
+          break;
+        }
         continue;
       }
       const json = (await res.json()) as { candidates?: { content?: Content }[] };
