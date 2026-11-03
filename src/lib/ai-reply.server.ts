@@ -187,16 +187,19 @@ export async function buildReply(opts: {
 
   let blocked = false;
   async function askAI(parts: Record<string, unknown>[]): Promise<string | null> {
-    const apiKey = process.env["GEMINI_API_KEY"];
-    if (!apiKey) {
+    const { geminiKeys } = await import("./gemini-keys.server");
+    const keys = geminiKeys();
+    if (!keys.length) {
       blocked = true;
       console.error("GEMINI_API_KEY missing");
       return null;
     }
-    // Free-tier Gemini is often briefly busy (429/503): cycle models, then wait and retry.
-    let keyInvalid = false;
+    // Free-tier Gemini is often briefly busy (429/503): cycle keys and models, then wait and retry.
+    const badKeys = new Set<string>();
     for (const wait of [0, 3000, 8000]) {
       if (wait) await new Promise((r) => setTimeout(r, wait));
+      for (const apiKey of keys) {
+      if (badKeys.has(apiKey)) continue;
       for (const model of MODELS) {
         let res: Response;
         try {
@@ -205,6 +208,7 @@ export async function buildReply(opts: {
             {
               method: "POST",
               headers: { "Content-Type": "application/json" },
+              signal: AbortSignal.timeout(25000),
               body: JSON.stringify({
                 system_instruction: { parts: [{ text: system }] },
                 contents: [...historyContents, { role: "user", parts }],
@@ -219,7 +223,10 @@ export async function buildReply(opts: {
         if (!res.ok) {
           const body = (await res.text()).slice(0, 600);
           console.error("AI error", model, res.status, body);
-          if (res.status === 401 || res.status === 403) keyInvalid = true;
+          if (res.status === 401 || res.status === 403) {
+            badKeys.add(apiKey);
+            break;
+          }
           continue;
         }
         const json = (await res.json()) as {
@@ -232,7 +239,8 @@ export async function buildReply(opts: {
             .trim() ?? "";
         if (text) return text;
       }
-      if (keyInvalid) break;
+      }
+      if (badKeys.size === keys.length) break;
     }
     blocked = true; // key problem or quota fully exhausted after all retries
     return null;

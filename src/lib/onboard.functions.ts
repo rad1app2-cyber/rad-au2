@@ -136,6 +136,8 @@ async function callGemini(contents: Content[]) {
       const content = json.candidates?.[0]?.content;
       if (content?.parts?.length) return content;
     }
+    }
+    if (badKeys.size === keys.length) throw new Error("مفتاح Gemini غير صالح");
   }
   if (lastErr.startsWith("429")) throw new Error("تم تجاوز الحد المجاني المؤقت لـ Gemini، حاول بعد دقيقة");
   throw new Error("تعذّر الوصول إلى الذكاء الاصطناعي حاليًا");
