@@ -15,3 +15,4 @@
 - Button motion lives in the shared Button styling; prominent action buttons use the animated action control with Arabic action labels so all actions stay consistent and accessible.
 - WhatsApp pairing uses the shared Evolution generation helper and direct authenticated chat actions; this avoids inconsistent parsing and dependency on Gemini for code renewal.
 - All logo placements reuse the transparent brand asset, and application colors come from global semantic tokens so appearance stays consistent.
+- Gemini keys rotate daily across GEMINI_API_KEY_1..3 (+ GEMINI_API_KEY) via src/lib/gemini-keys.server.ts, falling over on errors — spreads free-tier quota.
