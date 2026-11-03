@@ -154,6 +154,7 @@ export const onboardChat = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     let agentId = data.agentId;
     let pairingCode: string | null = null;
+    let pairingQr: string | null = null;
     let connected = false;
     const origin = (() => {
       try {
@@ -319,6 +320,7 @@ export const onboardChat = createServerFn({ method: "POST" })
         const result = await evo.generatePairing(a.instance_name, a.whatsapp_number, hook);
         connected = result.connected;
         pairingCode = result.pairingCode;
+        pairingQr = result.qr;
         if (connected) {
           await context.supabase.from("agents").update({ status: "open" }).eq("id", a.id);
           return { ok: true, state: "open" };
@@ -370,10 +372,10 @@ export const onboardChat = createServerFn({ method: "POST" })
       contents.push({ role: "user", parts: responses });
       // A valid short-lived code must not be lost if another Gemini call fails.
       if (pairingCode) {
-        reply = "أدخل الكود في واتساب: الإعدادات ← الأجهزة المرتبطة ← ربط جهاز ← الربط برقم الهاتف. بعد إدخاله اضغط تم الربط.";
+        reply = "أدخل الكود في واتساب: الإعدادات ← الأجهزة المرتبطة ← ربط جهاز، ثم امسح رمز QR أو اختر الربط برقم الهاتف وأدخل الكود. بعد الربط اضغط تم الربط.";
         break;
       }
     }
 
-    return { reply: reply || "حسنًا، لنكمل.", agentId, pairingCode, connected };
+    return { reply: reply || "حسنًا، لنكمل.", agentId, pairingCode, qr: pairingQr, connected };
   });
