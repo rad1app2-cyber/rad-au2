@@ -63,16 +63,19 @@ export default function RuixenMoonChat() {
             setConnected(result.status === "open");
             setMessages([...next, { role: "assistant", text: result.status === "open" ? "تم ربط واتساب، مساعدك جاهز." : "الربط لم يكتمل بعد. أدخل الكود في واتساب أو اطلب كودًا جديدًا." }]);
           } else {
-            const useQr = text === "الربط بمسح QR";
-            const result = await connect({ data: { id: agentId, pairing: !useQr } });
+            const result = await connect({ data: { id: agentId, pairing: true } });
             setConnected(result.connected);
+            setCodeExpired(false);
             setMessages([
               ...next,
               result.connected
                 ? { role: "assistant", text: "واتساب مربوط بالفعل، مساعدك جاهز." }
-                : useQr
-                  ? { role: "assistant", text: "افتح واتساب على هاتفك ← الأجهزة المرتبطة ← ربط جهاز، ثم امسح هذا الرمز. الرمز يتجدد تلقائيًا.", qr: result.qr ?? undefined }
-                  : { role: "assistant", text: "أدخل هذا الكود فورًا في واتساب: الأجهزة المرتبطة ← ربط جهاز ← الربط برقم الهاتف بدلًا من ذلك. الكود يتجدد تلقائيًا كل نصف دقيقة تقريبًا، استخدم الظاهر الآن.", code: result.pairingCode ?? undefined },
+                : {
+                    role: "assistant",
+                    text: "اختر طريقة واحدة في واتساب: الأجهزة المرتبطة ← ربط جهاز، ثم امسح رمز QR، أو اضغط «الربط برقم الهاتف بدلًا من ذلك» وأدخل الكود. الاثنان يتجددان تلقائيًا، استخدم الظاهر الآن.",
+                    qr: result.qr ?? undefined,
+                    code: result.pairingCode ?? undefined,
+                  },
             ]);
           }
           return;
@@ -92,7 +95,7 @@ export default function RuixenMoonChat() {
           }
         }
          setConnected(res.connected);
-        setMessages([...next, { role: "assistant", text: res.reply, code: res.pairingCode ?? undefined }]);
+        setMessages([...next, { role: "assistant", text: res.reply, code: res.pairingCode ?? undefined, qr: res.qr ?? undefined }]);
       } catch (e) {
         const error = e instanceof Error ? e.message : "حدث خطأ";
         toast.error(error);
@@ -273,9 +276,6 @@ export default function RuixenMoonChat() {
                          labelIdle="انتهت صلاحية الكود"
                         onClick={() => send("انتهت صلاحية الكود", messages)}
                       />
-                      {!m.qr && (
-                        <AnimatedGenerateButton disabled={busy} variant="outline" labelIdle="الربط بمسح QR" onClick={() => send("الربط بمسح QR", messages)} />
-                      )}
                     </div>
                   )}
                 </div>
@@ -293,8 +293,7 @@ export default function RuixenMoonChat() {
       <div className="relative z-10 w-full max-w-3xl px-4 pb-6">
         {agentId && !connected && (
           <div className="mb-3 flex flex-wrap justify-end gap-2">
-            <AnimatedGenerateButton disabled={busy} labelIdle="إنشاء كود الربط" onClick={() => send("إنشاء كود الربط", messages)} />
-            <AnimatedGenerateButton disabled={busy} variant="outline" labelIdle="الربط بمسح QR" onClick={() => send("الربط بمسح QR", messages)} />
+            <AnimatedGenerateButton disabled={busy} labelIdle="إنشاء كود الربط و QR" onClick={() => send("إنشاء كود الربط", messages)} />
           </div>
         )}
          <PromptInput className="rounded-md border border-border bg-card/80 backdrop-blur-md" onSubmit={({ text }) => submit(text)}>

@@ -131,14 +131,19 @@ export async function generatePairing(instanceName: string, number: string, webh
     }
   }
 
+  // Collect both the number code and the QR from the same live session.
   let payload: unknown = created;
+  let code: string | null = null;
+  let qr: string | null = null;
   for (let attempt = 0; attempt < 6; attempt++) {
-    const code = pairingValue(payload, "pairingCode");
-    const qr = pairingValue(payload, "base64");
-    if (pairing ? code : qr) return { pairingCode: code, qr, connected: false };
+    code = pairingValue(payload, "pairingCode") ?? code;
+    qr = pairingValue(payload, "base64") ?? qr;
+    if (pairing ? code && qr : qr) return { pairingCode: code, qr, connected: false };
     await wait(1500);
-    payload = await connectInstance(instanceName, pairing ? digits : undefined);
+    // Only ask for a number code once we lack one; asking again would invalidate it.
+    payload = await connectInstance(instanceName, pairing && !code ? digits : undefined);
   }
+  if (code || qr) return { pairingCode: code, qr, connected: false };
   throw new Error("خادم واتساب لم يُرجع كودًا بعد الانتظار. أعد المحاولة بعد لحظات.");
 }
 
