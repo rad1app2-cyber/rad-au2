@@ -63,16 +63,19 @@ export default function RuixenMoonChat() {
             setConnected(result.status === "open");
             setMessages([...next, { role: "assistant", text: result.status === "open" ? "تم ربط واتساب، مساعدك جاهز." : "الربط لم يكتمل بعد. أدخل الكود في واتساب أو اطلب كودًا جديدًا." }]);
           } else {
-            const useQr = text === "الربط بمسح QR";
-            const result = await connect({ data: { id: agentId, pairing: !useQr } });
+            const result = await connect({ data: { id: agentId, pairing: true } });
             setConnected(result.connected);
+            setCodeExpired(false);
             setMessages([
               ...next,
               result.connected
                 ? { role: "assistant", text: "واتساب مربوط بالفعل، مساعدك جاهز." }
-                : useQr
-                  ? { role: "assistant", text: "افتح واتساب على هاتفك ← الأجهزة المرتبطة ← ربط جهاز، ثم امسح هذا الرمز. الرمز يتجدد تلقائيًا.", qr: result.qr ?? undefined }
-                  : { role: "assistant", text: "أدخل هذا الكود فورًا في واتساب: الأجهزة المرتبطة ← ربط جهاز ← الربط برقم الهاتف بدلًا من ذلك. الكود يتجدد تلقائيًا كل نصف دقيقة تقريبًا، استخدم الظاهر الآن.", code: result.pairingCode ?? undefined },
+                : {
+                    role: "assistant",
+                    text: "اختر طريقة واحدة في واتساب: الأجهزة المرتبطة ← ربط جهاز، ثم امسح رمز QR، أو اضغط «الربط برقم الهاتف بدلًا من ذلك» وأدخل الكود. الاثنان يتجددان تلقائيًا، استخدم الظاهر الآن.",
+                    qr: result.qr ?? undefined,
+                    code: result.pairingCode ?? undefined,
+                  },
             ]);
           }
           return;
