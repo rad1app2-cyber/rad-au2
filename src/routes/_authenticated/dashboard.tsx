@@ -5,7 +5,9 @@ import { listAgents } from "@/lib/radd.functions";
 import { getAnalytics } from "@/lib/crm.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Bot, LogOut, MessageCircle, MessagesSquare, Phone, Users, BriefcaseBusiness } from "lucide-react";
+import { useState } from "react";
+import { downloadMonthlyReport } from "@/lib/reports.functions";
+import { ArrowLeft, Download, Bot, LogOut, MessageCircle, MessagesSquare, Phone, Users, BriefcaseBusiness } from "lucide-react";
 import logo from "@/assets/radd-logo.png";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
@@ -19,6 +21,36 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
   ] }),
   component: Dashboard,
 });
+
+function ReportRow({ agentId, name }: { agentId: string; name: string }) {
+  const download = useServerFn(downloadMonthlyReport);
+  const [month, setMonth] = useState(() => new Date().toISOString().slice(0, 7));
+  const [busy, setBusy] = useState(false);
+  const [info, setInfo] = useState<string>("");
+  const run = async () => {
+    setBusy(true); setInfo("");
+    try {
+      const res = await download({ data: { agentId, month } });
+      const bytes = Uint8Array.from(atob(res.base64), (c) => c.charCodeAt(0));
+      const url = URL.createObjectURL(new Blob([bytes], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }));
+      const link = document.createElement("a");
+      link.href = url; link.download = `${name}-${res.filename}`; link.click();
+      URL.revokeObjectURL(url);
+      const r = res.report as { conversionRate?: number; customers?: number; demandGap?: number };
+      setInfo(`العملاء: ${r.customers ?? 0} · نسبة التحويل: ${r.conversionRate ?? 0}%`);
+    } catch {
+      setInfo("تعذّر إنشاء التقرير، حاول مجددًا.");
+    } finally { setBusy(false); }
+  };
+  return <div className="rounded-md border border-border bg-card p-4">
+    <p className="font-bold">{name}</p>
+    <div className="mt-3 flex flex-wrap items-center gap-2">
+      <input type="month" value={month} onChange={(e) => setMonth(e.target.value)} aria-label="الشهر" className="h-9 rounded-md border border-input bg-background px-2 text-sm" />
+      <Button size="sm" onClick={run} disabled={busy}><Download className="h-4 w-4" /> {busy ? "جارٍ التجهيز…" : "تنزيل التقرير"}</Button>
+    </div>
+    {info && <p className="mt-2 text-sm text-muted-foreground">{info}</p>}
+  </div>;
+}
 
 function Dashboard() {
   const navigate = useNavigate();
@@ -69,6 +101,10 @@ function Dashboard() {
                 </Link>;
               })}</div>}
           </section>
+          {agents.length > 0 && <section aria-label="التقارير" className="space-y-3">
+            <h2 className="text-xl font-bold">التقارير الشهرية (Excel)</h2>
+            <div className="grid gap-3 md:grid-cols-2">{agents.map((a) => <ReportRow key={a.id} agentId={a.id} name={a.ai_name} />)}</div>
+          </section>}
           {totals && totals.deals > 0 && <p className="flex items-center gap-2 border-t border-border pt-5 text-sm text-muted-foreground"><BriefcaseBusiness className="h-4 w-4" /> إجمالي الصفقات: {totals.deals.toLocaleString("ar")}</p>}
         </>}
       </main>

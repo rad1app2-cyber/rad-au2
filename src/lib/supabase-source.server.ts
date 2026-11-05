@@ -216,6 +216,35 @@ function score(line: string, toks: string[]): number {
   return s;
 }
 
+/** Reads the customer's budget from text: "140 ألف" → 140000, "1.2 مليون" → 1200000, "550000" → 550000. */
+export function parseBudget(text: string): number | null {
+  const norm = text.replace(/[٠-٩]/g, (d) => String("٠١٢٣٤٥٦٧٨٩".indexOf(d))).replace(/(\d),(\d{3})/g, "$1$2");
+  let best: number | null = null;
+  for (const m of norm.matchAll(/(\d+(?:\.\d+)?)\s*(ألف|الف|آلاف|k|مليون|m\b)?/gi)) {
+    let n = parseFloat(m[1]!);
+    const unit = (m[2] ?? "").toLowerCase();
+    if (/ألف|الف|آلاف|k/.test(unit)) n *= 1000;
+    else if (/مليون|m/.test(unit)) n *= 1_000_000;
+    if (n >= 1000) { best = n; break; } // newest message comes first, so the first amount wins
+  }
+  return best;
+}
+
+/** Strict ±25% price window around the customer's budget. */
+export function withinBudget(price: number, budget: number): boolean {
+  return price >= budget * 0.75 && price <= budget * 1.25;
+}
+
+const PRICE_COL = /price|سعر|cost|amount|rent|إيجار|ايجار/i;
+function rowPrice(row: Record<string, unknown>): number | null {
+  for (const [k, v] of Object.entries(row)) {
+    if (!PRICE_COL.test(k)) continue;
+    const n = typeof v === "number" ? v : parseBudget(String(v ?? ""));
+    if (n && n > 0) return n;
+  }
+  return null;
+}
+
 /**
  * Renders the client's data for the model: every row is a candidate, ranked so the
  * rows matching the customer's request survive the character budget first.
@@ -223,11 +252,14 @@ function score(line: string, toks: string[]): number {
 export function renderKnowledge(sets: TableRows[], query: string, budget = 320000): string {
   const toks = tokens(query);
   const blocks: string[] = [];
-  const perTable = Math.max(20000, Math.floor(budget / Math.max(1, sets.length)));
+  const perTable = Math.max(3000, Math.floor(budget / Math.max(1, sets.length)));
+  const money = parseBudget(query);
 
   for (const set of sets) {
     const columns = Object.keys(set.rows[0] ?? {});
-    const scored = set.rows
+    // Hard filter: rows with a known price outside ±25% of the customer's budget never reach the model.
+    const rows = money ? set.rows.filter((r) => { const p = rowPrice(r); return p === null || withinBudget(p, money); }) : set.rows;
+    const scored = rows
       .map((row, i) => {
         const line = rowLine(row, i);
         return { line, s: toks.length ? score(line, toks) : 0 };

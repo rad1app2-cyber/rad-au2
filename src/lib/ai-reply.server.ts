@@ -26,6 +26,17 @@ export type ReplyResult = {
 
 const MODELS = ["gemini-flash-lite-latest", "gemini-3.1-flash-lite", "gemini-flash-latest"];
 
+/** WhatsApp alert to the assistant owner's own number; never blocks the customer reply. */
+async function notifyOwner(agent: AgentRow, text: string) {
+  try {
+    if (!agent.instance_name || !agent.whatsapp_number) return;
+    const { sendText } = await import("./evolution.server");
+    await sendText(agent.instance_name, agent.whatsapp_number, text);
+  } catch (e) {
+    console.error("owner notify failed", e);
+  }
+}
+
 export async function buildReply(opts: {
   agent: AgentRow;
   conversationId: string;
@@ -66,13 +77,15 @@ export async function buildReply(opts: {
   let dbKnowledge = "";
   if (sources && sources.length) {
     const { fetchRows, renderKnowledge } = await import("./supabase-source.server");
-    const budget = Math.floor(120000 / sources.length);
+    const budget = Math.floor(15000 / sources.length);
     const chunks = await Promise.all(
       sources.map(async (s) => {
         try {
           const sets = await fetchRows(s.project_url, s.anon_key, s.tables ?? []);
           if (!sets.length) return "";
-          const body = renderKnowledge(sets, userText, budget);
+          // Budget may be mentioned earlier in the chat, so include recent customer messages.
+          const q = [userText, ...history.filter((h) => h.role === "user").slice(0, 4).map((h) => h.content)].join(" ");
+          const body = renderKnowledge(sets, q, budget);
           return body ? `### قاعدة بيانات ${s.label}\n${body}` : "";
         } catch (e) {
           console.error("data source read failed", s.label, e);
@@ -85,7 +98,7 @@ export async function buildReply(opts: {
 
   const isFirst = !history || history.length === 0;
   // Big files: split into chunks and keep the ones most related to the question (and recent chat).
-  const KNOW_BUDGET = 80000;
+  const KNOW_BUDGET = 20000;
   const allFiles = files ?? [];
   const total = allFiles.reduce((n, f) => n + f.content.length, 0);
   let knowledge: string;
@@ -279,11 +292,13 @@ export async function buildReply(opts: {
     const book = reply.match(/\[BOOK\]\s*(\{.*\})/);
     if (book) {
       const b = JSON.parse(book[1]!) as { when?: string; property?: string; notes?: string };
-      if (b.when && !isNaN(Date.parse(b.when)))
-        await supabaseAdmin.from("appointments").insert({
+      if (b.when && !isNaN(Date.parse(b.when))) {
+        const { error: apptErr } = await supabaseAdmin.from("appointments").insert({
           agent_id: agent.id, customer_phone: phone, customer_name: opts.customerName ?? "",
           property_ref: b.property ?? "", scheduled_at: new Date(b.when).toISOString(), notes: b.notes ?? "",
         });
+        if (!apptErr) await notifyOwner(agent, `📅 موعد معاينة جديد\nالعقار: ${b.property ?? "-"}\nالموعد: ${b.when}\nالعميل: ${opts.customerName ?? ""} ${phone}`);
+      }
     }
     // Request tracking: keep the customer's current request (a DB trigger logs its history).
     const req = reply.match(/\[REQUEST\]\s*(\{.*\})/);
@@ -314,6 +329,7 @@ export async function buildReply(opts: {
         const { bookStay } = await import("./estate.server");
         const booked = await bookStay(agent.id, s.property, phone, new Date(s.start).toISOString(), new Date(s.end).toISOString());
         if (!booked.ok) stayError = booked.error ?? "تعذّر الحجز";
+        else await notifyOwner(agent, `🏨 حجز إقامة جديد\nالعقار: ${booked.property}\nمن ${s.start} إلى ${s.end}\nالعميل: ${opts.customerName ?? ""} ${phone}`);
       }
     }
   } catch (e) {
