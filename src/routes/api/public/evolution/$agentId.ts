@@ -107,7 +107,8 @@ export const Route = createFileRoute("/api/public/evolution/$agentId")({
           .insert({ agent_id: agent.id, remote_jid: jid, role: "user", content: thisText })
           .select("id")
           .single();
-        await new Promise((r) => setTimeout(r, 30000));
+        const delayMs = Math.min(Math.max(Number(agent.reply_delay_seconds ?? 8), 0), 120) * 1000;
+        if (delayMs) await new Promise((r) => setTimeout(r, delayMs));
         const { data: recent } = await supabaseAdmin
           .from("messages")
           .select("id, role, content")

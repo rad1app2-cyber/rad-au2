@@ -24,7 +24,7 @@ export type ReplyResult = {
   videos: string[];
 };
 
-const MODELS = ["gemini-3.8-flash", "gemini-flash-latest", "gemini-3.1-flash-lite"];
+const MODELS = ["gemini-flash-lite-latest", "gemini-3.1-flash-lite", "gemini-flash-latest"];
 
 export async function buildReply(opts: {
   agent: AgentRow;
@@ -196,7 +196,7 @@ export async function buildReply(opts: {
     }
     // Free-tier Gemini is often briefly busy (429/503): cycle keys and models, then wait and retry.
     const badKeys = new Set<string>();
-    for (const wait of [0, 3000, 8000]) {
+    for (const wait of [0, 2000]) {
       if (wait) await new Promise((r) => setTimeout(r, wait));
       for (const apiKey of keys) {
       if (badKeys.has(apiKey)) continue;
@@ -208,7 +208,7 @@ export async function buildReply(opts: {
             {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              signal: AbortSignal.timeout(25000),
+              signal: AbortSignal.timeout(12000),
               body: JSON.stringify({
                 system_instruction: { parts: [{ text: system }] },
                 contents: [...historyContents, { role: "user", parts }],

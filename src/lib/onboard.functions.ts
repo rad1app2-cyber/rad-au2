@@ -4,7 +4,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 
 // Free Google Gemini API (user's own GEMINI_API_KEY on the free tier).
-const MODELS = ["gemini-3.8-flash", "gemini-flash-latest", "gemini-3.1-flash-lite"];
+const MODELS = ["gemini-flash-lite-latest", "gemini-3.1-flash-lite", "gemini-flash-latest"];
 
 const SYSTEM = `أنت "ردّ"، مساعد إعداد ذكي داخل تطبيق يربط رقم واتساب الشركة بذكاء اصطناعي يرد على العملاء.
 تحدّث بالعربية فقط، بأسلوب ودود ومختصر، واسأل سؤالًا واحدًا في كل رسالة.
@@ -27,6 +27,7 @@ const SYSTEM = `أنت "ردّ"، مساعد إعداد ذكي داخل تطبي
 أنت أيضًا مدير المساعد الكامل: نفّذ أي طلب يخص التطبيق والمساعد باستخدام الأدوات، ولا تقل إنك لا تستطيع إن وُجدت أداة مناسبة. أمثلة:
 - "لا ترد على الرقم X" → block_number. "ارجع رد عليه" → unblock_number.
 - تغيير الاسم/الشخصية/المهمة/الترحيب/رقم الموظف/رسالة التحويل، أو إيقاف المساعد وتشغيله → update_agent.
+- تغيير وقت الرد (مثل: رد بعد 10 ثواني، رد فورًا) → update_agent مع reply_delay_seconds.
 - أي تعليمات سلوك دائمة (مثل: لا تذكر الأسعار، رد بالإنجليزية إن كتب العميل بها، أوقات الدوام...) → add_rule. لعرضها أو مسحها → list_rules / clear_rules.
 - عرض ملفات المعرفة أو حذف ملف → list_knowledge / delete_knowledge.
 - ربط قاعدة بيانات Supabase ليقرأ المساعد بياناتها الحية: اطلب من المستخدم خطوة بخطوة رابط المشروع (Project URL) ثم مفتاح anon/publishable (من إعدادات المشروع > API)، واختياريًا أسماء الجداول، ثم استدعِ connect_database. إن فشل اشرح السبب بوضوح (مثلًا الحاجة لسياسة قراءة عامة أو كتابة أسماء الجداول). لعرضها أو فصلها → list_databases / remove_database.
@@ -63,7 +64,7 @@ const TOOLS = [
         },
       },
       { name: "generate_pairing_code", description: "إنشاء كود ربط واتساب حقيقي", parameters: { type: "OBJECT", properties: {} } },
-      { name: "update_agent", description: "تعديل إعدادات المساعد (أرسل الحقول المطلوب تغييرها فقط)", parameters: { type: "OBJECT", properties: { ai_name: { type: "STRING" }, persona: { type: "STRING" }, job: { type: "STRING" }, greeting: { type: "STRING" }, employee_number: { type: "STRING", description: "none لحذفه" }, handoff_message: { type: "STRING" }, active: { type: "BOOLEAN" } } } },
+      { name: "update_agent", description: "تعديل إعدادات المساعد (أرسل الحقول المطلوب تغييرها فقط)", parameters: { type: "OBJECT", properties: { ai_name: { type: "STRING" }, persona: { type: "STRING" }, job: { type: "STRING" }, greeting: { type: "STRING" }, employee_number: { type: "STRING", description: "none لحذفه" }, handoff_message: { type: "STRING" }, active: { type: "BOOLEAN" }, reply_delay_seconds: { type: "NUMBER", description: "مدة انتظار المساعد بالثواني قبل الرد على الزبون (0-120)" } } } },
       { name: "block_number", description: "منع المساعد من الرد على رقم", parameters: { type: "OBJECT", properties: { number: { type: "STRING" } }, required: ["number"] } },
       { name: "unblock_number", description: "إلغاء منع رقم", parameters: { type: "OBJECT", properties: { number: { type: "STRING" } }, required: ["number"] } },
       { name: "list_blocked", description: "عرض الأرقام الممنوعة", parameters: { type: "OBJECT", properties: {} } },
@@ -97,7 +98,7 @@ async function callGemini(contents: Content[]) {
   let lastErr = "";
   const badKeys = new Set<string>();
   // Free-tier Gemini is often briefly busy (429/503): cycle keys and models, then wait and retry.
-  const waits = [0, 1500, 4000];
+  const waits = [0, 1500];
   for (const wait of waits) {
     if (wait) await new Promise((r) => setTimeout(r, wait));
     for (const apiKey of keys) {
@@ -110,7 +111,7 @@ async function callGemini(contents: Content[]) {
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            signal: AbortSignal.timeout(20000),
+            signal: AbortSignal.timeout(12000),
             body: JSON.stringify({
               system_instruction: { parts: [{ text: SYSTEM }] },
               contents,
@@ -217,10 +218,11 @@ export const onboardChat = createServerFn({ method: "POST" })
       }
       if (name === "update_agent") {
         const a = await getAgent();
-        const patch: { ai_name?: string; persona?: string; job?: string; greeting?: string; handoff_message?: string; employee_number?: string | null; active?: boolean } = {};
+        const patch: { ai_name?: string; persona?: string; job?: string; greeting?: string; handoff_message?: string; employee_number?: string | null; active?: boolean; reply_delay_seconds?: number } = {};
         for (const k of ["ai_name", "persona", "job", "greeting", "handoff_message"] as const) if (args[k]) patch[k] = args[k];
         if (args["employee_number"]) patch.employee_number = args["employee_number"] === "none" ? null : digits(args["employee_number"]) || null;
         if (typeof rawArgs["active"] === "boolean") patch.active = rawArgs["active"] as boolean;
+        if (rawArgs["reply_delay_seconds"] !== undefined && !Number.isNaN(Number(rawArgs["reply_delay_seconds"]))) patch.reply_delay_seconds = Math.min(Math.max(Math.round(Number(rawArgs["reply_delay_seconds"])), 0), 120);
         if (!Object.keys(patch).length) return { ok: false, error: "لا توجد تغييرات" };
         const { error } = await context.supabase.from("agents").update(patch).eq("id", a.id);
         return error ? { ok: false, error: error.message } : { ok: true, updated: Object.keys(patch) };
