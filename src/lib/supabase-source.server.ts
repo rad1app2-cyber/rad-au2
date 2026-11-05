@@ -225,7 +225,7 @@ export function parseBudget(text: string): number | null {
     const unit = (m[2] ?? "").toLowerCase();
     if (/ألف|الف|آلاف|k/.test(unit)) n *= 1000;
     else if (/مليون|m/.test(unit)) n *= 1_000_000;
-    if (n >= 1000 && (best === null || n > best)) best = n;
+    if (n >= 1000) { best = n; break; } // newest message comes first, so the first amount wins
   }
   return best;
 }
