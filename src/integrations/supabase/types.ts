@@ -29,6 +29,7 @@ export type Database = {
           job: string
           last_digest_on: string | null
           persona: string
+          reply_delay_seconds: number
           status: string
           updated_at: string
           user_id: string
@@ -48,6 +49,7 @@ export type Database = {
           job?: string
           last_digest_on?: string | null
           persona?: string
+          reply_delay_seconds?: number
           status?: string
           updated_at?: string
           user_id: string
@@ -67,6 +69,7 @@ export type Database = {
           job?: string
           last_digest_on?: string | null
           persona?: string
+          reply_delay_seconds?: number
           status?: string
           updated_at?: string
           user_id?: string

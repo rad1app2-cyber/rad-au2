@@ -1,0 +1,1 @@
+ALTER TABLE public.agents ADD COLUMN IF NOT EXISTS reply_delay_seconds integer NOT NULL DEFAULT 8 CHECK (reply_delay_seconds BETWEEN 0 AND 120);
