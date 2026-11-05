@@ -66,13 +66,15 @@ export async function buildReply(opts: {
   let dbKnowledge = "";
   if (sources && sources.length) {
     const { fetchRows, renderKnowledge } = await import("./supabase-source.server");
-    const budget = Math.floor(120000 / sources.length);
+    const budget = Math.floor(15000 / sources.length);
     const chunks = await Promise.all(
       sources.map(async (s) => {
         try {
           const sets = await fetchRows(s.project_url, s.anon_key, s.tables ?? []);
           if (!sets.length) return "";
-          const body = renderKnowledge(sets, userText, budget);
+          // Budget may be mentioned earlier in the chat, so include recent customer messages.
+          const q = [userText, ...history.filter((h) => h.role === "user").slice(0, 4).map((h) => h.content)].join(" ");
+          const body = renderKnowledge(sets, q, budget);
           return body ? `### قاعدة بيانات ${s.label}\n${body}` : "";
         } catch (e) {
           console.error("data source read failed", s.label, e);
@@ -85,7 +87,7 @@ export async function buildReply(opts: {
 
   const isFirst = !history || history.length === 0;
   // Big files: split into chunks and keep the ones most related to the question (and recent chat).
-  const KNOW_BUDGET = 80000;
+  const KNOW_BUDGET = 20000;
   const allFiles = files ?? [];
   const total = allFiles.reduce((n, f) => n + f.content.length, 0);
   let knowledge: string;
