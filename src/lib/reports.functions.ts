@@ -18,5 +18,5 @@ export const downloadMonthlyReport = createServerFn({ method: "POST" })
       estate.buildMonthlyArchive(data.agentId, data.month),
       estate.estateReport(data.agentId),
     ]);
-    return { base64: archive.base64, filename: archive.filename, report: JSON.parse(JSON.stringify(report)) as Record<string, unknown> };
+    return { base64: archive.base64, filename: archive.filename, customers: Number(report.customers ?? 0), conversionRate: Number(report.conversionRate ?? 0) };
   });

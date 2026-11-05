@@ -36,8 +36,7 @@ function ReportRow({ agentId, name }: { agentId: string; name: string }) {
       const link = document.createElement("a");
       link.href = url; link.download = `${name}-${res.filename}`; link.click();
       URL.revokeObjectURL(url);
-      const r = res.report as { conversionRate?: number; customers?: number; demandGap?: number };
-      setInfo(`العملاء: ${r.customers ?? 0} · نسبة التحويل: ${r.conversionRate ?? 0}%`);
+      setInfo(`العملاء: ${res.customers} · نسبة التحويل: ${res.conversionRate}%`);
     } catch {
       setInfo("تعذّر إنشاء التقرير، حاول مجددًا.");
     } finally { setBusy(false); }

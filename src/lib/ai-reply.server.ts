@@ -29,9 +29,11 @@ const MODELS = ["gemini-flash-lite-latest", "gemini-3.1-flash-lite", "gemini-fla
 /** WhatsApp alert to the assistant owner's own number; never blocks the customer reply. */
 async function notifyOwner(agent: AgentRow, text: string) {
   try {
-    if (!agent.instance_name || !agent.whatsapp_number) return;
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: a } = await supabaseAdmin.from("agents").select("instance_name, whatsapp_number").eq("id", agent.id).maybeSingle();
+    if (!a?.instance_name || !a.whatsapp_number) return;
     const { sendText } = await import("./evolution.server");
-    await sendText(agent.instance_name, agent.whatsapp_number, text);
+    await sendText(a.instance_name, a.whatsapp_number, text);
   } catch (e) {
     console.error("owner notify failed", e);
   }
