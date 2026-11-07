@@ -55,23 +55,23 @@
   --card-foreground: var(--foreground);
   --popover: var(--card);
   --popover-foreground: var(--foreground);
-  --primary: oklch(0.55 0.225 355);
+  --primary: #0066FF;
   --primary-foreground: oklch(1 0 0);
   --secondary: oklch(0.97 0.008 265);
   --secondary-foreground: var(--foreground);
   --muted: var(--secondary);
   --muted-foreground: oklch(0.51 0.023 265);
-  --accent: oklch(0.96 0.018 355);
+  --accent: #EAF2FF;
   --accent-foreground: var(--primary);
   --destructive: oklch(0.55 0.22 25);
   --destructive-foreground: var(--primary-foreground);
   --border: oklch(0.936 0.008 265);
   --input: var(--border);
   --ring: var(--primary);
-  --chart-1: #8B00FF;
-  --chart-2: #F72585;
-  --chart-3: #FF9F43;
-  --chart-4: #FFD166;
+  --chart-1: #0066FF;
+  --chart-2: #3B8BFF;
+  --chart-3: #7FB2FF;
+  --chart-4: #0B1220;
   --chart-5: #6B7280;
   --sidebar: var(--secondary);
   --sidebar-foreground: var(--foreground);
@@ -82,12 +82,12 @@
   --sidebar-border: var(--border);
   --sidebar-ring: var(--primary);
 
-  --gradient-brand: linear-gradient(135deg, #8B00FF, #F72585 40%, #FF9F43 75%, #FFD166);
+  --gradient-brand: linear-gradient(135deg, #0B1220, #0066FF 55%, #6FA8FF);
   --gradient-glow: none;
   --shadow-soft: 0 10px 40px -12px color-mix(in oklab, var(--foreground) 12%, transparent);
   --shadow-glow: 0 1px 4px color-mix(in oklab, var(--foreground) 6%, transparent);
-  --shadow-logo: 0 0 24px rgb(247 37 133 / 0.48), 0 0 64px rgb(139 0 255 / 0.35);
-  --button-glow: 0 0 0 1px rgb(247 37 133 / 0.28), 0 0 18px rgb(247 37 133 / 0.27);
+  --shadow-logo: 0 0 24px rgb(0 102 255 / 0.45), 0 0 64px rgb(0 102 255 / 0.3);
+  --button-glow: 0 0 0 1px rgb(0 102 255 / 0.28), 0 0 18px rgb(0 102 255 / 0.27);
 }
 
 .dark {
