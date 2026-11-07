@@ -5,6 +5,7 @@ import { getAgent, agentStatus } from "@/lib/radd.functions";
 import { getAgentInsights } from "@/lib/crm.functions";
 import { AgentAnalyticsTab } from "@/components/AgentInsights";
 import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { ArrowRight, MessageCircle, Phone, FileText, Users, BriefcaseBusiness } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/agents/$agentId")({

@@ -9,6 +9,7 @@ import { useState } from "react";
 import { downloadMonthlyReport } from "@/lib/reports.functions";
 import { ArrowLeft, Download, Bot, LogOut, MessageCircle, MessagesSquare, Phone, Users, BriefcaseBusiness } from "lucide-react";
 import logo from "@/assets/radd-logo.png";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({ meta: [

@@ -11,6 +11,7 @@ import { PromptInput, PromptInputTextarea, PromptInputFooter, PromptInputSubmit 
 import { Shimmer } from "@/components/ai-elements/shimmer";
 import { ArrowUpIcon, Paperclip, LayoutDashboard, LogOut, Copy, FileText } from "lucide-react";
 import logo from "@/assets/radd-logo.png";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { onboardChat } from "@/lib/onboard.functions";
 import { addKnowledge, connectAgent, agentStatus, livePairingCode } from "@/lib/radd.functions";
 import { supabase } from "@/integrations/supabase/client";
