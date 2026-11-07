@@ -36,6 +36,13 @@
       "when": 1794080748121,
       "tag": "0004_products_and_business_type",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1794080759965,
+      "tag": "0005_product_media_policies",
+      "breakpoints": true
     }
   ]
 }
