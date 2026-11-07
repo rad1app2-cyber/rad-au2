@@ -11,6 +11,7 @@ import { PromptInput, PromptInputTextarea, PromptInputFooter, PromptInputSubmit 
 import { Shimmer } from "@/components/ai-elements/shimmer";
 import { ArrowUpIcon, Paperclip, LayoutDashboard, LogOut, Copy, FileText } from "lucide-react";
 import logo from "@/assets/radd-logo.png";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { onboardChat } from "@/lib/onboard.functions";
 import { addKnowledge, connectAgent, agentStatus, livePairingCode } from "@/lib/radd.functions";
 import { supabase } from "@/integrations/supabase/client";
@@ -202,10 +203,10 @@ export default function RuixenMoonChat() {
 
       <header className="relative z-10 flex w-full max-w-3xl items-center justify-between px-4 py-4">
         <div className="flex items-center gap-2">
-          <img src={logo} alt="شعار ردّ" className="h-10 w-10 rounded-xl" />
-          <span className="brand-text text-2xl font-extrabold">ردّ</span>
+          <img src={logo} alt="شعار ردّ" className="logo-badge h-10 w-10 rounded-xl" />
         </div>
         <div className="flex gap-1">
+          <ThemeToggle />
           <Link to="/dashboard">
             <Button variant="ghost" size="sm" className="gap-1">
               <LayoutDashboard className="h-4 w-4" /> لوحة التحكم

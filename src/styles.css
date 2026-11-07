@@ -91,7 +91,46 @@
 }
 
 .dark {
-  color-scheme: light;
+  color-scheme: dark;
+  --background: #0B0B10;
+  --foreground: #F1F5F9;
+  --card: #12121C;
+  --card-foreground: var(--foreground);
+  --popover: var(--card);
+  --popover-foreground: var(--foreground);
+  --primary: #3B8BFF;
+  --primary-foreground: #ffffff;
+  --secondary: #1A1A28;
+  --secondary-foreground: var(--foreground);
+  --muted: var(--secondary);
+  --muted-foreground: #9CA3AF;
+  --accent: #12233F;
+  --accent-foreground: #7FB2FF;
+  --destructive: oklch(0.6 0.2 25);
+  --destructive-foreground: #ffffff;
+  --border: #23232F;
+  --input: var(--border);
+  --ring: var(--primary);
+  --sidebar: var(--secondary);
+  --sidebar-foreground: var(--foreground);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent: var(--accent);
+  --sidebar-accent-foreground: var(--foreground);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--primary);
+
+  --gradient-brand: linear-gradient(135deg, #EAF2FF, #3B8BFF 55%, #7FB2FF);
+  --shadow-soft: 0 10px 40px -12px rgb(0 0 0 / 0.6);
+  --shadow-glow: 0 1px 4px rgb(0 0 0 / 0.5);
+  --button-glow: 0 0 0 1px rgb(59 139 255 / 0.35), 0 0 18px rgb(59 139 255 / 0.3);
+}
+
+/* الشعار داكن اللون، فيحتاج خلفية فاتحة في الوضع الداكن */
+.dark .logo-badge {
+  background: #ffffff;
+  padding: 3px;
+  border-radius: 10px;
 }
 
 @layer base {
