@@ -19,6 +19,7 @@ export type Database = {
           active: boolean
           ai_name: string
           blocked_numbers: string[]
+          business_type: string
           created_at: string
           custom_rules: string
           employee_number: string | null
@@ -39,6 +40,7 @@ export type Database = {
           active?: boolean
           ai_name: string
           blocked_numbers?: string[]
+          business_type?: string
           created_at?: string
           custom_rules?: string
           employee_number?: string | null
@@ -59,6 +61,7 @@ export type Database = {
           active?: boolean
           ai_name?: string
           blocked_numbers?: string[]
+          business_type?: string
           created_at?: string
           custom_rules?: string
           employee_number?: string | null
@@ -757,6 +760,59 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "messages_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      products: {
+        Row: {
+          agent_id: string
+          available: boolean
+          created_at: string
+          currency: string
+          description: string
+          id: string
+          name: string
+          photos: Json
+          price: number | null
+          shipping: string
+          user_id: string
+          videos: Json
+        }
+        Insert: {
+          agent_id: string
+          available?: boolean
+          created_at?: string
+          currency?: string
+          description?: string
+          id?: string
+          name?: string
+          photos?: Json
+          price?: number | null
+          shipping?: string
+          user_id: string
+          videos?: Json
+        }
+        Update: {
+          agent_id?: string
+          available?: boolean
+          created_at?: string
+          currency?: string
+          description?: string
+          id?: string
+          name?: string
+          photos?: Json
+          price?: number | null
+          shipping?: string
+          user_id?: string
+          videos?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "products_agent_id_fkey"
             columns: ["agent_id"]
             isOneToOne: false
             referencedRelation: "agents"
