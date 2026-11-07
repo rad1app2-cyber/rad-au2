@@ -106,11 +106,13 @@ function AuthPage() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center px-4 py-12">
+    <main className="relative flex min-h-screen items-center justify-center px-4 py-12">
+      <div className="absolute left-4 top-4">
+        <ThemeToggle />
+      </div>
       <div className="w-full max-w-md">
         <Link to="/" className="mb-8 flex flex-col items-center gap-3">
-          <img src={logo} alt="شعار ردّ" width={72} height={72} className="h-16 w-16" />
-          <span className="brand-text text-4xl font-extrabold">ردّ</span>
+          <img src={logo} alt="شعار ردّ" width={72} height={72} className="logo-badge h-16 w-16" />
         </Link>
 
         <div className="glow-card rounded-3xl border border-border bg-card p-6">

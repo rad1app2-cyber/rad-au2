@@ -32,7 +32,7 @@ function AgentPage() {
   const a = data.agent;
   const connected = (live?.status ?? a.status) === "open";
   return <main className="mx-auto max-w-5xl space-y-8 px-4 py-8" dir="rtl">
-    <div className="flex flex-wrap items-center justify-between gap-3"><Button asChild variant="ghost"><Link to="/dashboard"><ArrowRight className="h-4 w-4" /> لوحة التحكم</Link></Button><Button asChild className="brand-gradient text-primary-foreground"><Link to="/"><MessageCircle className="h-4 w-4" /> تحدث مع ردّ</Link></Button></div>
+    <div className="flex flex-wrap items-center justify-between gap-3"><div className="flex items-center gap-1"><Button asChild variant="ghost"><Link to="/dashboard"><ArrowRight className="h-4 w-4" /> لوحة التحكم</Link></Button><ThemeToggle /></div><Button asChild className="brand-gradient text-primary-foreground"><Link to="/"><MessageCircle className="h-4 w-4" /> تحدث مع ردّ</Link></Button></div>
     <header className="border-b border-border pb-7"><div className="flex flex-wrap items-center gap-4"><h1 className="text-3xl font-extrabold">{a.ai_name}</h1><span className={connected ? "text-primary" : "text-muted-foreground"}>● {connected ? "متصل بواتساب" : "غير متصل"}</span></div><p className="mt-3 flex items-center gap-2 text-muted-foreground"><Phone className="h-4 w-4" /><span dir="ltr">{a.whatsapp_number}</span></p></header>
     <section aria-label="معلومات المساعد" className="grid gap-x-8 gap-y-5 border-b border-border pb-8 sm:grid-cols-2">
       <div><h2 className="text-sm text-muted-foreground">المهمة</h2><p className="mt-1 whitespace-pre-wrap">{a.job || "—"}</p></div>

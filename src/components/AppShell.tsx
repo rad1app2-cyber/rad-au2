@@ -28,9 +28,9 @@ export function AppShell({
       <aside className="border-b border-border/60 bg-card/40 backdrop-blur md:min-h-screen md:w-64 md:shrink-0 md:border-b-0 md:border-l">
         <div className="flex items-center justify-between gap-2 px-4 py-4">
           <Link to="/" className="flex items-center gap-2">
-            <img src={logo} alt="شعار ردّ" width={36} height={36} className="h-9 w-9" loading="lazy" />
-            <span className="brand-text text-2xl font-extrabold">ردّ</span>
+            <img src={logo} alt="شعار ردّ" width={36} height={36} className="logo-badge h-9 w-9" loading="lazy" />
           </Link>
+          <ThemeToggle />
           <Button
             variant="ghost"
             size="icon"

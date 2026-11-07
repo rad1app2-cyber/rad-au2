@@ -70,8 +70,9 @@ function Dashboard() {
     <div className="min-h-screen bg-background" dir="rtl">
       <header className="border-b border-border bg-card/50">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-4">
-          <Link to="/" className="flex items-center gap-2"><img src={logo} alt="ردّ" className="h-9 w-9" /><span className="brand-text text-2xl font-extrabold">ردّ</span></Link>
+          <Link to="/" className="flex items-center gap-2"><img src={logo} alt="ردّ" className="logo-badge h-9 w-9" /></Link>
           <div className="flex items-center gap-2">
+            <ThemeToggle />
             <Button asChild variant="outline" size="sm"><Link to="/"><MessageCircle className="h-4 w-4" /> <span>المحادثة</span></Link></Button>
             <Button variant="ghost" size="icon" aria-label="خروج" onClick={async () => { await supabase.auth.signOut(); navigate({ to: "/auth" }); }}><LogOut className="h-4 w-4" /></Button>
           </div>
