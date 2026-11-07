@@ -29,6 +29,13 @@
       "when": 1793856600431,
       "tag": "0003_agent_reply_delay",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1794080748121,
+      "tag": "0004_products_and_business_type",
+      "breakpoints": true
     }
   ]
 }
