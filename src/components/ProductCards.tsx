@@ -49,7 +49,10 @@ export function ProductCards({ agentId, count, onSaved }: { agentId: string; cou
   }
 
   async function onMedia(i: number, file: File, kind: "photo" | "video") {
-    if (file.size > 15 * 1024 * 1024) return toast.error("الحد الأقصى للملف 15 ميجابايت");
+    if (file.size > 15 * 1024 * 1024) {
+      toast.error("الحد الأقصى للملف 15 ميجابايت");
+      return;
+    }
     const key = `${i}-${kind}`;
     setUploading(key);
     try {
@@ -64,7 +67,10 @@ export function ProductCards({ agentId, count, onSaved }: { agentId: string; cou
   }
 
   async function submit() {
-    if (!filled) return toast.error("عبّئ بطاقة واحدة على الأقل قبل الحفظ");
+    if (!filled) {
+      toast.error("عبّئ بطاقة واحدة على الأقل قبل الحفظ");
+      return;
+    }
     setSaving(true);
     try {
       const r = await save({
