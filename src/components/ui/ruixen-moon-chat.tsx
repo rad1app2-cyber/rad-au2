@@ -14,9 +14,10 @@ import logo from "@/assets/radd-logo.png";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { onboardChat } from "@/lib/onboard.functions";
 import { addKnowledge, connectAgent, agentStatus, livePairingCode } from "@/lib/radd.functions";
+import { ProductCards } from "@/components/ProductCards";
 import { supabase } from "@/integrations/supabase/client";
 
-type Msg = { role: "user" | "assistant"; text: string; code?: string | undefined; qr?: string | undefined; file?: string | undefined };
+type Msg = { role: "user" | "assistant"; text: string; code?: string | undefined; qr?: string | undefined; file?: string | undefined; productCards?: number | undefined };
 
 function toBase64(file: File) {
   return new Promise<string>((resolve, reject) => {
@@ -96,7 +97,7 @@ export default function RuixenMoonChat() {
           }
         }
          setConnected(res.connected);
-        setMessages([...next, { role: "assistant", text: res.reply, code: res.pairingCode ?? undefined, qr: res.qr ?? undefined }]);
+        setMessages([...next, { role: "assistant", text: res.reply, code: res.pairingCode ?? undefined, qr: res.qr ?? undefined, productCards: res.productCards || undefined }]);
       } catch (e) {
         const error = e instanceof Error ? e.message : "حدث خطأ";
         toast.error(error);
@@ -243,6 +244,13 @@ export default function RuixenMoonChat() {
                 </div>
               )}
                <MessageResponse className="[&_ol]:pr-5 [&_ul]:pr-5">{m.text}</MessageResponse>
+              {m.productCards && agentId && (
+                <ProductCards
+                  agentId={agentId}
+                  count={m.productCards}
+                  onSaved={(saved) => void send(`حفظت ${saved} منتجًا في بطاقات المنتجات`, messages)}
+                />
+              )}
               {(m.code || m.qr) && (
                 <div className="mt-3 space-y-3">
                   {m.qr && (

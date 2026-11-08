@@ -53,7 +53,7 @@ export async function buildReply(opts: {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
   const phone = conversationId.split("@")[0]!.replace(/\D/g, "");
-  const [{ data: files }, { data: rawHistory }, { data: sources }, { data: sent }, { data: contact }] = await Promise.all([
+  const [{ data: files }, { data: rawHistory }, { data: sources }, { data: sent }, { data: contact }, { data: products }] = await Promise.all([
     supabaseAdmin.from("knowledge_files").select("file_name, content").eq("agent_id", agent.id),
     supabaseAdmin
       .from("messages")
@@ -68,6 +68,7 @@ export async function buildReply(opts: {
       .eq("agent_id", agent.id),
     supabaseAdmin.from("sent_offers").select("offer_ref").eq("agent_id", agent.id).eq("customer_phone", phone),
     supabaseAdmin.from("contacts").select("id, request_summary, lead_status").eq("agent_id", agent.id).eq("phone", phone).maybeSingle(),
+    supabaseAdmin.from("products").select("name, description, price, currency, shipping, photos, videos, available").eq("agent_id", agent.id).eq("available", true).limit(250),
   ]);
   let history = rawHistory ?? [];
   if (opts.skipPendingUser) {
