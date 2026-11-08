@@ -32,6 +32,7 @@ const SYSTEM = `أنت "ردّ"، مساعد إعداد ذكي داخل تطبي
 - عرض ملفات المعرفة أو حذف ملف → list_knowledge / delete_knowledge.
 - ربط قاعدة بيانات Supabase ليقرأ المساعد بياناتها الحية: اطلب من المستخدم خطوة بخطوة رابط المشروع (Project URL) ثم مفتاح anon/publishable (من إعدادات المشروع > API)، واختياريًا أسماء الجداول، ثم استدعِ connect_database. إن فشل اشرح السبب بوضوح (مثلًا الحاجة لسياسة قراءة عامة أو كتابة أسماء الجداول). لعرضها أو فصلها → list_databases / remove_database.
 - إذا كان للمستخدم أكثر من مساعد ولم يحدد، اسأله أيّها (باستخدام select_agent بالمعرّف).
+- المنتجات: عندما يقول المستخدم إنه يريد إضافة منتجات (مثل: "أريد إضافة 8 منتجات")، استدعِ add_product_cards بالعدد المطلوب (حتى 50 في المرة الواحدة، والحد الكلي 250 منتجًا). ستظهر له بطاقات تفاعلية يعبّئ فيها الاسم والسعر والوصف والشحن والصور والفيديو — كلها اختيارية — ويحفظ متى شاء حتى لو لم يعبّئ كل البطاقات. لا تجمع بيانات المنتجات نصيًا، البطاقات هي الطريقة. لعرض المنتجات أو حذف منتج → list_products / delete_product.
 إذا طلب المستخدم أي سلوك للمساعد لا توجد له أداة مخصصة، نفّذه فورًا عبر add_rule بصياغة واضحة ثم أكّد له. لا تقل إنك نفّذت شيئًا قبل أن تنجح الأداة فعلًا، وأجب باختصار ودقة.
 لا تنفّذ طلبات خارج نطاق التطبيق؛ اعتذر بلطف.`;
 
@@ -84,6 +85,9 @@ const TOOLS = [
       { name: "estate_report", description: "تقرير التحويل وفجوة الطلب وأسباب الرفض والتسويق", parameters: { type: "OBJECT", properties: {} } },
       { name: "estate_archive", description: "إنشاء أرشيف Excel لشهر محدد بصيغة YYYY-MM وإرجاع رابط تنزيله", parameters: { type: "OBJECT", properties: { month: { type: "STRING", description: "YYYY-MM" } }, required: ["month"] } },
       { name: "list_occupancy", description: "عرض الإشغالات الفندقية القادمة والحالية", parameters: { type: "OBJECT", properties: {} } },
+      { name: "add_product_cards", description: "فتح بطاقات منتجات تفاعلية للمستخدم ليعبّئها (اسم، سعر، وصف، شحن، صور، فيديو — كلها اختيارية)", parameters: { type: "OBJECT", properties: { count: { type: "NUMBER", description: "عدد البطاقات المطلوبة، 1-50" } }, required: ["count"] } },
+      { name: "list_products", description: "عرض منتجات المساعد المحفوظة", parameters: { type: "OBJECT", properties: {} } },
+      { name: "delete_product", description: "حذف منتج بالمعرّف", parameters: { type: "OBJECT", properties: { id: { type: "STRING" } }, required: ["id"] } },
     ],
   },
 ];
@@ -157,6 +161,7 @@ export const onboardChat = createServerFn({ method: "POST" })
     let pairingCode: string | null = null;
     let pairingQr: string | null = null;
     let connected = false;
+    let productCards = 0;
     const origin = (() => {
       try {
         return new URL(getRequest().url).origin;
@@ -275,6 +280,22 @@ export const onboardChat = createServerFn({ method: "POST" })
         const { error } = await context.supabase.from("data_sources").delete().eq("agent_id", a.id).eq("id", args["id"] ?? "");
         return error ? { ok: false, error: error.message } : { ok: true };
       }
+      if (name === "add_product_cards") {
+        await getAgent();
+        const n = Math.min(Math.max(Math.round(Number(rawArgs["count"]) || 1), 1), 50);
+        productCards = n;
+        return { ok: true, note: `فُتحت ${n} بطاقة منتجات للمستخدم، أخبره أن يعبّئ ما يريد ويضغط حفظ متى شاء` };
+      }
+      if (name === "list_products") {
+        const a = await getAgent();
+        const { data: p } = await context.supabase.from("products").select("id, name, price, currency, available").eq("agent_id", a.id).order("created_at", { ascending: false }).limit(250);
+        return { products: p ?? [], count: p?.length ?? 0 };
+      }
+      if (name === "delete_product") {
+        const a = await getAgent();
+        const { error } = await context.supabase.from("products").delete().eq("agent_id", a.id).eq("id", args["id"] ?? "");
+        return error ? { ok: false, error: error.message } : { ok: true };
+      }
       const evo = await import("./evolution.server");
       if (name === "create_agent") {
         if (agentId && !data.messages.some((m) => /مساعد جديد|مساعد آخر|أنشئ|إنشاء/.test(m.text))) return { ok: false, error: "يوجد مساعد مسبقًا؛ اطلب تأكيد المستخدم قبل إنشاء آخر" };
@@ -379,5 +400,5 @@ export const onboardChat = createServerFn({ method: "POST" })
       }
     }
 
-    return { reply: reply || "حسنًا، لنكمل.", agentId, pairingCode, qr: pairingQr, connected };
+    return { reply: reply || "حسنًا، لنكمل.", agentId, pairingCode, qr: pairingQr, connected, productCards };
   });

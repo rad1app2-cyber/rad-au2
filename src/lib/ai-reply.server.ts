@@ -53,7 +53,7 @@ export async function buildReply(opts: {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
   const phone = conversationId.split("@")[0]!.replace(/\D/g, "");
-  const [{ data: files }, { data: rawHistory }, { data: sources }, { data: sent }, { data: contact }] = await Promise.all([
+  const [{ data: files }, { data: rawHistory }, { data: sources }, { data: sent }, { data: contact }, { data: products }] = await Promise.all([
     supabaseAdmin.from("knowledge_files").select("file_name, content").eq("agent_id", agent.id),
     supabaseAdmin
       .from("messages")
@@ -68,6 +68,7 @@ export async function buildReply(opts: {
       .eq("agent_id", agent.id),
     supabaseAdmin.from("sent_offers").select("offer_ref").eq("agent_id", agent.id).eq("customer_phone", phone),
     supabaseAdmin.from("contacts").select("id, request_summary, lead_status").eq("agent_id", agent.id).eq("phone", phone).maybeSingle(),
+    supabaseAdmin.from("products").select("name, description, price, currency, shipping, photos, videos, available").eq("agent_id", agent.id).eq("available", true).limit(250),
   ]);
   let history = rawHistory ?? [];
   if (opts.skipPendingUser) {
@@ -96,6 +97,44 @@ export async function buildReply(opts: {
       }),
     );
     dbKnowledge = chunks.filter(Boolean).join("\n\n");
+  }
+
+  // Product catalog (up to 250): rank by relevance to the question, sign media URLs
+  // so WhatsApp can fetch them, and hand the best matches to the model.
+  let productKnowledge = "";
+  if (products && products.length) {
+    const q = [userText, ...history.filter((h) => h.role === "user").slice(0, 4).map((h) => h.content)].join(" ").toLowerCase();
+    const words = new Set(q.split(/[^\p{L}\p{N}]+/u).filter((w) => w.length > 1));
+    const scored = products.map((p) => {
+      const hay = `${p.name} ${p.description} ${p.shipping}`.toLowerCase();
+      let score = 0;
+      for (const w of words) if (hay.includes(w)) score++;
+      return { p, score };
+    });
+    scored.sort((a, b) => b.score - a.score);
+    const picked = scored.slice(0, 25);
+    const mediaPaths = picked.flatMap(({ p }) => [...((p.photos as string[] | null) ?? []), ...((p.videos as string[] | null) ?? [])]);
+    const urlByPath = new Map<string, string>();
+    if (mediaPaths.length) {
+      const { data: signed } = await supabaseAdmin.storage.from("product-media").createSignedUrls(mediaPaths, 3600);
+      for (const s of signed ?? []) if (s.path && s.signedUrl) urlByPath.set(s.path, s.signedUrl);
+    }
+    productKnowledge = picked
+      .map(({ p }) => {
+        const lines = [
+          `• ${p.name || "منتج"}`,
+          p.price !== null ? `السعر: ${p.price} ${p.currency || ""}`.trim() : "",
+          p.description ? `الوصف: ${p.description.slice(0, 400)}` : "",
+          p.shipping ? `الشحن: ${p.shipping}` : "",
+        ].filter(Boolean);
+        const photos = ((p.photos as string[] | null) ?? []).map((x) => urlByPath.get(x)).filter(Boolean);
+        const videos = ((p.videos as string[] | null) ?? []).map((x) => urlByPath.get(x)).filter(Boolean);
+        if (photos.length) lines.push(`صور: ${photos.join(" ")}`);
+        if (videos.length) lines.push(`فيديو: ${videos.join(" ")}`);
+        return lines.join(" | ");
+      })
+      .join("\n");
+    productKnowledge = `### منتجات المتجر (${products.length} منتجًا، الأقرب لطلب العميل أولًا)\n${productKnowledge}`;
   }
 
   const isFirst = !history || history.length === 0;
@@ -152,6 +191,15 @@ export async function buildReply(opts: {
     knowledge
       ? `اعتمد في إجاباتك على المعلومات التالية، ولا تخترع معلومات غير موجودة فيها:\n${knowledge}`
       : "",
+    productKnowledge
+      ? [
+          `لديك كتالوج منتجات المتجر أدناه. قواعد إلزامية:`,
+          `- عندما يسأل العميل عن منتج، ابحث في الكتالوج واعرض الأنسب مع اسمه وسعره ووصفه المختصر.`,
+          `- عند عرض منتج له صور أو فيديو، أرسل روابطها عبر أسطر [PHOTO] و[VIDEO] ليستلمها العميل فورًا.`,
+          `- لا تخترع منتجات أو أسعارًا غير موجودة في الكتالوج.`,
+          productKnowledge,
+        ].join("\n")
+      : "",
     dbKnowledge
       ? [
           `لديك أدناه بيانات فعلية ومحدّثة من قاعدة بيانات العميل، كل سطر يمثل سجلًا كاملًا بحقوله، والسجلات مرتبة بحيث تأتي الأقرب لطلب العميل أولًا.`,
@@ -175,8 +223,8 @@ export async function buildReply(opts: {
       `[REQUEST] {"area":"المنطقة","budget":رقم,"rooms":رقم,"type":"بيع|إيجار|فندقي"} عندما يتضح طلب العميل أو يتغيّر، حدّثه كلما تغيّر.`,
       `[REJECT] {"reason":"سبب رفض العميل للعروض المعروضة"} عندما يقول العميل إن العروض لم تعجبه مع ذكر السبب.`,
       `[OFFER] مرجع/اسم كل عرض أرسلته في هذا الرد، كل عرض في سطر`,
-      `[PHOTO] رابط صورة (http...) لكل عقار تعرضه إذا كان في بياناته رابط صورة، بحد أقصى 5 صور، كل رابط في سطر.`,
-      `[VIDEO] رابط فيديو (http...) لكل عقار تعرضه إذا كان في بياناته رابط فيديو، بحد أقصى 3، كل رابط في سطر.`,
+      `[PHOTO] رابط صورة (http...) لكل عقار أو منتج تعرضه إذا كان في بياناته رابط صورة، بحد أقصى 10 صور، كل رابط في سطر.`,
+      `[VIDEO] رابط فيديو (http...) لكل عقار أو منتج تعرضه إذا كان في بياناته رابط فيديو، بحد أقصى 5، كل رابط في سطر.`,
       `[BOOK] {"when":"تاريخ ووقت ISO 8601","property":"العقار","notes":"ملاحظات"} فقط عند اتفاق العميل على موعد معاينة محدد.`,
       `[STAY] {"property":"اسم العقار الفندقي","start":"تاريخ الوصول ISO","end":"تاريخ المغادرة ISO"} فقط عند اتفاق العميل على حجز إقامة فندقية بتواريخ محددة.`,
       `التاريخ الحالي: ${new Date().toISOString()}`,
@@ -337,8 +385,8 @@ export async function buildReply(opts: {
   } catch (e) {
     console.error("bookkeeping failed", e);
   }
-  const photos = [...reply.matchAll(/\[PHOTO\]\s*(https?:\/\/\S+)/g)].map((m) => m[1]!).slice(0, 5);
-  const videos = [...reply.matchAll(/\[VIDEO\]\s*(https?:\/\/\S+)/g)].map((m) => m[1]!).slice(0, 3);
+  const photos = [...reply.matchAll(/\[PHOTO\]\s*(https?:\/\/\S+)/g)].map((m) => m[1]!).slice(0, 10);
+  const videos = [...reply.matchAll(/\[VIDEO\]\s*(https?:\/\/\S+)/g)].map((m) => m[1]!).slice(0, 5);
   reply = reply.replace(/^\s*\[(LEAD|OFFER|BOOK|PHOTO|VIDEO|REQUEST|REJECT|STAY)\].*$/gm, "").trim();
   if (stayError) reply = `${reply}\n${stayError}`.trim();
 
