@@ -13,6 +13,17 @@ type AgentRow = {
   user_id?: string;
 };
 
+/** Full price without scientific notation, with thousands separators (e.g. 1,250,000). */
+export function fullPrice(v: unknown): string {
+  const n = Number(v);
+  if (!Number.isFinite(n)) return String(v ?? "");
+  try {
+    return BigInt(Math.round(n)).toLocaleString("en-US") + (Number.isInteger(n) ? "" : (n % 1).toFixed(2).slice(1));
+  } catch {
+    return n.toLocaleString("en-US", { maximumFractionDigits: 2, useGrouping: true });
+  }
+}
+
 export type MediaPart = { data: string; mimetype: string } | null;
 
 export type ReplyResult = {
@@ -122,8 +133,8 @@ export async function buildReply(opts: {
     productKnowledge = picked
       .map(({ p }) => {
         const lines = [
-          `• ${p.name || "منتج"}`,
-          p.price !== null ? `السعر: ${p.price} ${p.currency || ""}`.trim() : "",
+          `🛍️ ${p.name || "منتج"}`,
+          p.price !== null && p.price !== undefined ? `💰 السعر: ${fullPrice(p.price)} ${p.currency || ""}`.trim() : "",
           p.description ? `الوصف: ${p.description.slice(0, 400)}` : "",
           p.shipping ? `الشحن: ${p.shipping}` : "",
         ].filter(Boolean);
@@ -131,9 +142,9 @@ export async function buildReply(opts: {
         const videos = ((p.videos as string[] | null) ?? []).map((x) => urlByPath.get(x)).filter(Boolean);
         if (photos.length) lines.push(`صور: ${photos.join(" ")}`);
         if (videos.length) lines.push(`فيديو: ${videos.join(" ")}`);
-        return lines.join(" | ");
+        return lines.join("\n");
       })
-      .join("\n");
+      .join("\n\n");
     productKnowledge = `### منتجات المتجر (${products.length} منتجًا، الأقرب لطلب العميل أولًا)\n${productKnowledge}`;
   }
 
@@ -197,6 +208,8 @@ export async function buildReply(opts: {
           `- عندما يسأل العميل عن منتج، ابحث في الكتالوج واعرض الأنسب مع اسمه وسعره ووصفه المختصر.`,
           `- عند عرض منتج له صور أو فيديو، أرسل روابطها عبر أسطر [PHOTO] و[VIDEO] ليستلمها العميل فورًا.`,
           `- لا تخترع منتجات أو أسعارًا غير موجودة في الكتالوج.`,
+          `- نسّق كل منتج في أسطر منفصلة: سطر للاسم، سطر للسعر، سطر للوصف، سطر للشحن، واترك سطرًا فارغًا بين المنتجات.`,
+          `- اكتب السعر كاملًا كما هو في الكتالوج بالأرقام العادية، ولا تستخدم أبدًا الرموز * أو | أو # أو الجداول.`,
           productKnowledge,
         ].join("\n")
       : "",
@@ -391,7 +404,12 @@ export async function buildReply(opts: {
   if (stayError) reply = `${reply}\n${stayError}`.trim();
 
   const handoffMatch = reply.match(/\[HANDOFF\]\s*:?\s*(?:ملخص\s*:)?\s*([\s\S]*)$/i);
-  const clientReply = reply.replace(/\[HANDOFF\][\s\S]*$/i, "").trim();
+  const clientReply = reply
+    .replace(/\[HANDOFF\][\s\S]*$/i, "")
+    .replace(/\*+|_{2,}|`+|#+\s/g, "")
+    .replace(/\s*\|\s*/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
   return {
     reply: clientReply || "سيتم تحويلك إلى أحد موظفينا للمساعدة، شكرًا لانتظارك.",
     handoff: Boolean(handoffMatch),
