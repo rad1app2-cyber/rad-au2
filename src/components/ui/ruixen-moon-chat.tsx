@@ -19,6 +19,19 @@ import { supabase } from "@/integrations/supabase/client";
 
 type Msg = { role: "user" | "assistant"; text: string; code?: string | undefined; qr?: string | undefined; file?: string | undefined; productCards?: number | undefined };
 
+/** Live activity lines shown while the assistant works, based on what the user asked. */
+function activitySteps(text: string): string[] {
+  const t = text;
+  if (!t) return ["يجهّز ردّ المحادثة…", "يقرأ بيانات حسابك…", "يكتب الرد…"];
+  if (/كود|QR|ربط|انتهت|تم الربط/i.test(t)) return ["يتصل بخادم واتساب…", "يولّد كود الربط ورمز QR…", "يتحقق من حالة الاتصال…"];
+  if (/أرفقت الملف|ملف|pdf/i.test(t)) return ["يرفع الملف…", "يقرأ محتوى الملف…", "يحفظه في معرفة المساعد…", "يكتب الرد…"];
+  if (/supabase|قاعدة|جدول|مفتاح/i.test(t)) return ["يتصل بقاعدة البيانات…", "يقرأ الجداول…", "يحفظ الإعدادات…", "يكتب الرد…"];
+  if (/منتج|بطاق|سعر/i.test(t)) return ["يفتح كتالوج المنتجات…", "يقرأ المنتجات المحفوظة…", "يحدّث المنتجات…", "يكتب الرد…"];
+  if (/احصائ|إحصائ|رسائل|عملاء|موعد|تقرير/i.test(t)) return ["يقرأ إحصائيات مساعدك…", "يحلل المحادثات والمواعيد…", "يكتب الرد…"];
+  if (/حظر|رقم|قاعدة|تأخير|ثانية|اسم|غيّر|عدّل|أضف|احذف/i.test(t)) return ["يفهم طلبك…", "يعدّل إعدادات المساعد…", "يحفظ التغييرات…", "يكتب الرد…"];
+  return ["يفهم طلبك…", "يراجع معلومات مساعدك…", "يكتب الرد…"];
+}
+
 function toBase64(file: File) {
   return new Promise<string>((resolve, reject) => {
     const r = new FileReader();
@@ -44,6 +57,13 @@ export default function RuixenMoonChat() {
   const fileRef = useRef<HTMLInputElement>(null);
   const started = useRef(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [step, setStep] = useState(0);
+  const lastUserText = [...messages].reverse().find((m) => m.role === "user")?.text ?? "";
+  useEffect(() => {
+    if (!busy) return setStep(0);
+    const t = setInterval(() => setStep((s) => s + 1), 1600);
+    return () => clearInterval(t);
+  }, [busy]);
 
   async function uploadFile(file: File, id: string) {
     const base64 = await toBase64(file);
@@ -293,7 +313,7 @@ export default function RuixenMoonChat() {
           </Message>
         ))}
         {busy && (
-           <Message from="assistant" className="self-end"><MessageContent><Shimmer className="text-sm">ردّ يكتب…</Shimmer></MessageContent></Message>
+           <Message from="assistant" className="self-end"><MessageContent><Shimmer className="text-sm">{activitySteps(lastUserText)[Math.min(step, activitySteps(lastUserText).length - 1)]!}</Shimmer></MessageContent></Message>
         )}
         </ConversationContent>
         <ConversationScrollButton aria-label="انتقل إلى أحدث رسالة" />
